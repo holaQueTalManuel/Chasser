@@ -1,0 +1,158 @@
+﻿<Page x:Class="Chasser.Game"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Chasser"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="Game">
+
+    <Page.Resources>
+        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
+        <SolidColorBrush x:Key="LightBrown" Color="#D2B48C" />
+        <SolidColorBrush x:Key="DarkBrown" Color="#8B4513" />
+        <SolidColorBrush x:Key="HighlightColor" Color="#7DFF7D" Opacity="0.5"/>
+    </Page.Resources>
+
+    <Grid Background="{StaticResource SoftBeige}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Panel izquierdo con botones -->
+        <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0">
+            <Image Source="/Imgs/logo.jpg" Width="100" Height="100" Margin="5,5"/>
+            <Button Click="Button_Click" Content="Pausar" Margin="0,5" Padding="10,5" Background="Azure"/>
+            <Button Content="Reiniciar" Margin="0,5" Padding="10,5" Background="Azure"/>
+            <Button Click="LogOut_Click" Content="Salir" Margin="0,5" Padding="10,5" Background="Azure"/>
+        </StackPanel>
+
+        
+            <Grid Grid.Column="1" Name="boardGrid" Width="500" Height="500" MouseDown="boardGrid_MouseDown">
+                <Grid.Background>
+                    <ImageBrush ImageSource="/Imgs/realBoard.png"></ImageBrush>
+                </Grid.Background>
+
+                <UniformGrid x:Name="highlightGrid" Rows="7" Columns="7">
+
+                </UniformGrid>
+
+                <UniformGrid x:Name="pieceGrid" Rows="7" Columns="7"
+                             RenderOptions.BitmapScalingMode="HighQuality">
+                    
+                </UniformGrid>
+
+            </Grid>
+        
+
+        <!-- Tablero de ajedrez - Versión corregida --><!--
+        <Grid Name="pieceGrid" Grid.Column="1" Width="350" Height="350" HorizontalAlignment="Center" VerticalAlignment="Center">
+            --><!-- Definiciones de filas y columnas --><!--
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            --><!-- Fondo del tablero --><!--
+            <UniformGrid Grid.RowSpan="7" Grid.ColumnSpan="7" Rows="7" Columns="7">
+                --><!-- Fila 0 --><!--
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+
+                --><!-- Fila 1 --><!--
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+
+                --><!-- Fila 2 --><!--
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+
+                --><!-- Fila 3 --><!--
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="Green"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+
+                --><!-- Fila 4 --><!--
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+
+                --><!-- Fila 5 --><!--
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+
+                --><!-- Fila 6 --><!--
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+                <Rectangle Fill="{StaticResource LightBrown}"/>
+                <Rectangle Fill="{StaticResource DarkBrown}"/>
+            </UniformGrid>
+
+            --><!-- Grid para resaltados y detección de clicks --><!--
+            <UniformGrid x:Name="highlightGrid" Grid.RowSpan="7" Grid.ColumnSpan="7" 
+                         Rows="7" Columns="7" MouseDown="highlightGrid_MouseDown">
+                --><!-- Se llenará dinámicamente con rectángulos transparentes --><!--
+            </UniformGrid>
+
+            --><!-- Grid para las imágenes de las piezas --><!--
+            <Grid x:Name="piecesGrid" Grid.RowSpan="7" Grid.ColumnSpan="7">
+                --><!-- Las imágenes se agregarán dinámicamente desde el código --><!--
+            </Grid>
+        </Grid>-->
+
+        <!-- Panel derecho con información -->
+        <StackPanel x:Name="infoUser" Visibility="Hidden" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,0,0,0">
+            <TextBlock Text="Datos del jugador" FontSize="17"/>
+            <TextBlock x:Name="nameBlock" Text="Manuel Montero Calero" FontSize="17"/>
+            <TextBlock x:Name="gamesBlock" Text="Partidas ganadas: 3" FontSize="17"/>
+        </StackPanel>
+    </Grid>
+</Page>

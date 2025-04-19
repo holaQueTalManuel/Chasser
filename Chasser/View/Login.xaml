@@ -1,0 +1,143 @@
+﻿<Page x:Class="Chasser.Login"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:logic="clr-namespace:Chasser.Logic"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Chasser"
+      mc:Ignorable="d" 
+      d:DesignHeight="700" d:DesignWidth="900"
+      Title="Login">
+
+    <Page.Resources>
+        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
+
+        <Style x:Key="TextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Margin" Value="0,10"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PasswordBoxStyle" TargetType="PasswordBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Margin" Value="0,10"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <logic:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </Page.Resources>
+
+    <Grid Background="{StaticResource SoftBeige}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Logo -->
+        <Image Source="/Imgs/logo.jpg"
+               Width="100" Height="100"
+               HorizontalAlignment="Center"
+               Margin="0,40,0,0"/>
+
+        <!-- Login Form -->
+        <Border Grid.Row="1"
+                CornerRadius="16"
+                Padding="30"
+                Background="White"
+                Width="350"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel>
+                <TextBlock Text="Bienvenido a CHASSER"
+                           FontSize="26"
+                           FontWeight="Bold"
+                           Foreground="#333"
+                           TextAlignment="Center"
+                           Margin="0,0,0,20"/>
+
+                <!-- Usuario con placeholder -->
+                <Grid>
+                    <TextBox x:Name="UsernameBox"
+                             Style="{StaticResource TextBoxStyle}"
+                             TextChanged="UsernameBox_TextChanged"/>
+                    <TextBlock Text="Nombre de usuario"
+                               Foreground="Gray"
+                               Margin="14,0,0,0"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Visibility="{Binding Text, ElementName=UsernameBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </Grid>
+
+                <!-- Contraseña con placeholder -->
+                <Grid>
+                    <!-- PasswordBox (oculto cuando se quiere mostrar la contraseña) -->
+                    <PasswordBox x:Name="PasswordBox"
+                         Style="{StaticResource PasswordBoxStyle}"
+                         PasswordChanged="PasswordBox_PasswordChanged"
+                         Visibility="Visible"/>
+
+                    <!-- TextBox para mostrar la contraseña (por defecto oculto) -->
+                    <TextBox x:Name="PasswordTextBox"
+                         Style="{StaticResource TextBoxStyle}"
+                         Visibility="Collapsed"
+                         TextChanged="PasswordTextBox_TextChanged"/>
+
+                    <!-- Placeholder -->
+                    <TextBlock Text="Contraseña"
+                       Foreground="Gray"
+                       Margin="14,0,0,0"
+                       VerticalAlignment="Center"
+                       IsHitTestVisible="False"
+                       Visibility="{Binding Tag, ElementName=PasswordBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                    <!-- Botón de ojo -->
+                    <Button Content="👁️"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Width="30" Height="30"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                            Margin="0,0, 10,0"
+                        FontSize="20"
+                        Cursor="Hand"
+                        Click="TogglePasswordVisibility"/>
+                </Grid>
+
+                <!-- Botón de login -->
+                <Button Content="Iniciar Sesión"
+                        Height="45"
+                        FontSize="16"
+                        Margin="0,20,0,0"
+                        Background="#2D2D30"
+                        Foreground="White"
+                        BorderBrush="Transparent"
+                        Cursor="Hand"
+                        BorderThickness="0"
+                        Padding="10"
+                        Click="Login_Click"/>
+
+                <!-- Texto con enlace para registro -->
+                <StackPanel Orientation="Horizontal" 
+                            HorizontalAlignment="Center" 
+                            Margin="0,15,0,0">
+                    <TextBlock Text="¿No tienes cuenta? " 
+                               Foreground="#555"/>
+                    <TextBlock Text="Regístrate" 
+                               Foreground="#2D2D30"
+                               FontWeight="SemiBold"
+                               Cursor="Hand"
+                               TextDecorations="Underline"
+                               MouseLeftButtonUp="RegisterLink_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

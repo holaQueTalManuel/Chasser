@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Imgs\board.png" />
+    <None Remove="Imgs\horse.png" />
+    <None Remove="Imgs\horseWpng.png" />
+    <None Remove="Imgs\logo.ico" />
+    <None Remove="Imgs\logo.jpg" />
+    <None Remove="Imgs\peonB.png" />
+    <None Remove="Imgs\peonW.png" />
+    <None Remove="Imgs\realBoard.png" />
+    <None Remove="Imgs\sanB.png" />
+    <None Remove="Imgs\sanW.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Imgs\board.png" />
+    <Resource Include="Imgs\horse.png" />
+    <Resource Include="Imgs\horseWpng.png" />
+    <Resource Include="Imgs\logo.ico" />
+    <Resource Include="Imgs\logo.jpg" />
+    <Resource Include="Imgs\peonB.png" />
+    <Resource Include="Imgs\peonW.png" />
+    <Resource Include="Imgs\realBoard.png" />
+    <Resource Include="Imgs\sanB.png" />
+    <Resource Include="Imgs\sanW.png" />
+  </ItemGroup>
+
+</Project>
