@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.RightsManagement;
 using System.Text;
 using System.Threading.Tasks;
 using Chasser.Moves;
@@ -17,6 +18,8 @@ namespace Chasser.Logic
 
         public Board Board {  get; }
         public Player CurrentPlayer { get; private set; }
+        public int CantEated { get; set; } = 0;
+        public Result Result { get; private set; } = null;
 
         public IEnumerable<Move> LegalMovesForPiece(Position pos)
         {
@@ -32,6 +35,26 @@ namespace Chasser.Logic
         {
             move.Execute(Board);
             CurrentPlayer = CurrentPlayer.Opponent();
+            CheckForGameOver();
+        }
+
+        public bool IsGameOver()
+        {
+            // Implementar la lógica para determinar si el juego ha terminado
+            // Por ejemplo, verificar si un jugador ha ganado o si hay un empate
+
+
+
+            return Result != null;
+        }
+
+        public void CheckForGameOver()
+        {
+            Position center = new Position(3, 3);
+            if (!Board.isEmpty(center))
+            {
+                Result = Result.WinA(CurrentPlayer);
+            }
         }
 
 

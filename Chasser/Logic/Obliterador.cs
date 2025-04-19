@@ -19,6 +19,8 @@ namespace Chasser.Logic
         public override PieceType Type => PieceType.Obliterador;
 
         public override Player Color { get; }
+        private readonly Direction forward;
+
 
         public Obliterador(Player color)
         {
@@ -32,10 +34,55 @@ namespace Chasser.Logic
             return copy;
         }
 
-        public override IEnumerable<Move> GetMoves(Position from, Board board)
+        private bool CanCaptureAt(Position pos, Board board)
         {
-            return MovePositionsInDirs(from, board, dirs).Select(
-                to => new NormalMove(from, to));
+            if (!Board.isInside(pos) || board.isEmpty(pos))
+            {
+                return false;
+            }
+            return board[pos].Color != Color;
         }
+
+        public IEnumerable<Move> DiagonalMoves(Position from, Board board)
+        {
+            foreach (Direction dir in new Direction[] { Direction.West, Direction.East })
+            {
+                Position to = from + forward + dir;
+                if (CanCaptureAt(to, board))
+                {
+                    yield return new NormalMove(from, to);
+                }
+            }
+        }
+
+        
+            public override IEnumerable<Move> GetMoves(Position from, Board board)
+        {
+            foreach (Direction dir in dirs)
+            {
+                for (int step = 1; step <= 2; step++)
+                {
+                    Position to = from + step * dir;
+
+                    if (!Board.isInside(to))
+                        break;
+
+                    if (board.isEmpty(to))
+                    {
+                        yield return new NormalMove(from, to);
+                    }
+                    else
+                    {
+                        if (board[to].Color != Color)
+                        {
+                            yield return new NormalMove(from, to); // captura
+                        }
+                        break; // no puede seguir más allá
+                    }
+                }
+            }
+        }
+
     }
 }
+

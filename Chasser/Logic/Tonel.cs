@@ -11,6 +11,10 @@ namespace Chasser.Logic
     {
         public override PieceType Type => PieceType.Tonel;
         private readonly Direction forward;
+        private static readonly Direction[] Directions = new[]
+        {
+            Direction.North, Direction.South, Direction.East, Direction.West
+        };
         public override Player Color { get; }
 
         public Tonel(Player color) 
@@ -44,31 +48,30 @@ namespace Chasser.Logic
 
         private IEnumerable<Move> ForwardMoves(Position from, Board board)
         {
-            Position oneMovePos = from + forward;
-
-            if (CanMoveTo(oneMovePos, board))
+            //tonel no podra comerse a nadie, solo podra entrar a la meta
+            foreach (var dir in Directions)
             {
-                yield return new NormalMove(from, oneMovePos);
-                Position twoMovesPos = oneMovePos + forward;
+                Position oneStep = from + dir;
 
-                if (CanMoveTo(twoMovesPos, board))
+                if (CanMoveTo(oneStep, board))
                 {
-                    yield return new NormalMove(from, twoMovesPos);
+                    yield return new NormalMove(from, oneStep);
+
+                    Position twoSteps = oneStep + dir;
+                    if (CanMoveTo(twoSteps, board))
+                    {
+                        yield return new NormalMove(from, twoSteps);
+                        
+                    }
+
+                    
                 }
+                
+
             }
         }
         //esto va a ser para los diagonales que ira en obliteradores (de momento)
-        public IEnumerable<Move> DiagonalMoves(Position from, Board board)
-        {
-            foreach (Direction dir in new Direction[] {Direction.West, Direction.East})
-            {
-                Position to = from + forward + dir;
-                if (CanCaptureAt(to,  board))
-                {
-                    yield return new NormalMove(from, to);
-                }
-            }
-        }
+        
 
         public override IEnumerable<Move> GetMoves(Position from, Board board)
         {

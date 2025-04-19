@@ -144,6 +144,12 @@ namespace Chasser
         {
             gameState.MakeMove(move);
             DrawBoard(gameState.Board);
+
+            if (gameState.IsGameOver())
+            {
+                //ahora mismo se cierra, pero mañana domingo a ver si hago el menu para que se vea y empiezo a hacer el tcp
+                Application.Current.Shutdown();
+            }
         }
 
         private void onFromPositionSelected(Position pos)
