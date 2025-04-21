@@ -63,8 +63,7 @@ namespace Chasser.Logic
                 return false;
 
             // No puede capturar a otra Sanguijuela
-            if (target.Type == PieceType.Sanguijuela)
-                return false;
+            
 
             
 

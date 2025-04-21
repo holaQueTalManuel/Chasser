@@ -13,6 +13,7 @@ namespace Chasser.Logic
     }
     public static class PlayerExtensions
     {
+        public static int CantEaten { get; set; } = 0;
         public static Player Opponent(this Player player)
         {
             return player switch

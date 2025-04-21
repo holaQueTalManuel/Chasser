@@ -11,6 +11,7 @@ namespace Chasser.Logic
     {
         public override PieceType Type => PieceType.Tonel;
         private readonly Direction forward;
+        private Player CurrentPlayer;
         private static readonly Direction[] Directions = new[]
         {
             Direction.North, Direction.South, Direction.East, Direction.West
@@ -43,6 +44,7 @@ namespace Chasser.Logic
             {
                 return false;
             }
+            
             return board[pos].Color != Color;
         }
 

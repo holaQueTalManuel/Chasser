@@ -18,7 +18,11 @@ namespace Chasser.Logic
 
         public Board Board {  get; }
         public Player CurrentPlayer { get; private set; }
-        public int CantEated { get; set; } = 0;
+        private Dictionary<Player, int> Eliminations = new Dictionary<Player, int>
+        {
+            { Player.White, 0 },
+            { Player.Black, 0 }
+        };
         public Result Result { get; private set; } = null;
 
         public IEnumerable<Move> LegalMovesForPiece(Position pos)
@@ -33,9 +37,24 @@ namespace Chasser.Logic
 
         public void MakeMove(Move move)
         {
+            // mira qué hay en la posición de destino
+            var capturedPiece = Board[move.ToPos]; 
+
             move.Execute(Board);
-            CurrentPlayer = CurrentPlayer.Opponent();
+
+            if (capturedPiece != null && capturedPiece.Color != CurrentPlayer)
+            {
+                Eliminations[CurrentPlayer]++;
+                if (Eliminations[CurrentPlayer] >= 3)
+                {
+                    Result = Result.WinB(CurrentPlayer); 
+                    return;
+                }
+            }
+
+            CurrentPlayer = CurrentPlayer.Opponent();            
             CheckForGameOver();
+
         }
 
         public bool IsGameOver()
@@ -54,6 +73,10 @@ namespace Chasser.Logic
             if (!Board.isEmpty(center))
             {
                 Result = Result.WinA(CurrentPlayer);
+            }
+            if (Eliminations[CurrentPlayer] >= 3)
+            {
+                Result = Result.WinB(CurrentPlayer);
             }
         }
 

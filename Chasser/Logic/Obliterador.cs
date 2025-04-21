@@ -20,11 +20,17 @@ namespace Chasser.Logic
 
         public override Player Color { get; }
         private readonly Direction forward;
+        public bool HasCaptured { get; set; } = false;
 
 
         public Obliterador(Player color)
         {
             Color = color;
+
+            if (color == Player.White)
+                forward = Direction.NorthWest;
+            else if (color == Player.Black)
+                forward = Direction.SouthEast;
         }
 
         public override Piece Copy()
@@ -40,12 +46,23 @@ namespace Chasser.Logic
             {
                 return false;
             }
+            HasCaptured = true;
             return board[pos].Color != Color;
         }
 
+        private bool CanMoveTo(Position pos, Board board)
+        {
+            // Si intenta moverse al centro y no ha capturado antes: prohibido
+            if (pos.Row == 3 && pos.Column == 3 && !HasCaptured)
+                return false;
+
+            return Board.isInside(pos) && board.isEmpty(pos);
+        }
+
+
         public IEnumerable<Move> DiagonalMoves(Position from, Board board)
         {
-            foreach (Direction dir in new Direction[] { Direction.West, Direction.East })
+            foreach (Direction dir in dirs)
             {
                 Position to = from + forward + dir;
                 if (CanCaptureAt(to, board))
@@ -55,8 +72,8 @@ namespace Chasser.Logic
             }
         }
 
-        
-            public override IEnumerable<Move> GetMoves(Position from, Board board)
+
+        public override IEnumerable<Move> GetMoves(Position from, Board board)
         {
             foreach (Direction dir in dirs)
             {
@@ -69,12 +86,14 @@ namespace Chasser.Logic
 
                     if (board.isEmpty(to))
                     {
-                        yield return new NormalMove(from, to);
+                        if (CanMoveTo(to, board))
+                            yield return new NormalMove(from, to);
                     }
                     else
                     {
                         if (board[to].Color != Color)
                         {
+                            HasCaptured = true;
                             yield return new NormalMove(from, to); // captura
                         }
                         break; // no puede seguir más allá
@@ -82,6 +101,7 @@ namespace Chasser.Logic
                 }
             }
         }
+
 
     }
 }
