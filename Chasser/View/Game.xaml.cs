@@ -39,6 +39,7 @@ namespace Chasser
         {
             InitializeComponent();
             _context = App.ServiceProvider.GetRequiredService<ChasserContext>();
+            LeerUsuarios();
             InitializeBoard();
 
             gameState = new GameState(Player.White, Board.Initialize());
@@ -79,8 +80,8 @@ namespace Chasser
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            infoUser.Visibility = Visibility.Visible;
-            LeerUsuarios();
+            //infoUser.Visibility = Visibility.Visible;
+            
         }
 
         private void LeerUsuarios()
@@ -147,9 +148,13 @@ namespace Chasser
 
             if (gameState.IsGameOver())
             {
-                //ahora mismo se cierra, pero mañana domingo a ver si hago el menu para que se vea y empiezo a hacer el tcp
+                //ahora mismo se cierra, pero mañana domingo/ la semana que viene, lo importante es que llegue, el menu me da
+                //un poco igual
+                //a ver si hago el menu para que se vea y empiezo a hacer el tcp
                 Application.Current.Shutdown();
             }
+            string turn = gameState.CurrentPlayer == Player.White ? "Blancas" : "Negras";
+            turnBlock.Text = "Turno: " + turn;
         }
 
         private void onFromPositionSelected(Position pos)

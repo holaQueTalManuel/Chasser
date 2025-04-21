@@ -96,7 +96,7 @@ namespace Chasser.Logic
                             HasCaptured = true;
                             yield return new NormalMove(from, to); // captura
                         }
-                        break; // no puede seguir más allá
+                   
                     }
                 }
             }
