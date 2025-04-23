@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Chasser.Logic;
 using Chasser.Moves;
+using Chasser.View;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -82,6 +83,17 @@ namespace Chasser
         {
             //infoUser.Visibility = Visibility.Visible;
             
+        }
+
+        private void Rules_Click(object sender, RoutedEventArgs e)
+        {
+            //EJEMPLITO PARA TI MANUEL DEL FUTURO (ULTIMO FINDE DE ABRIL CUANDO TE PONGAS CON EL TCP), EL CONTENIDO DE ESTE BOTON LO TENDRA QUE HACER EL SERVER Y LO QUE SE MANDARA
+            //A LO MEJOR UN JSON QUE PONGA REGLAS VER, YO QUE SE, PERO SERA ALGO ASI, IMAGINO.
+            RulesWindow rulesWindow = new RulesWindow
+            {
+                Owner = Window.GetWindow(this)
+            };
+            rulesWindow.ShowDialog(); 
         }
 
         private void LeerUsuarios()
