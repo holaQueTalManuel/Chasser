@@ -34,30 +34,38 @@ namespace Chasser
             NavigationService.Navigate(new Login());
         }
 
-        private void Register_Click(object sender, RoutedEventArgs e)
+        //await solo se puede utilzar dentro de un metodo asincrono
+        private async void Register_Click(object sender, RoutedEventArgs e)
         {
             if (PasswordBox.Password != null && ConfirmPasswordBox.Password != null && EmailBox.Text != null
                 && UsernameBox.Text != null)
             {
                 if (PasswordBox.Password == ConfirmPasswordBox.Password)
                 {
-                    string hasheadaHistorica = BCryptPasswordHasher.HashPassword(PasswordBox.Password);
+                    string message = $"REGISTER|{UsernameBox.Text}|{PasswordBox.Password}|{EmailBox.Text}";
 
-                    Usuario usu = new Usuario
+                    try
                     {
-                        Nombre = UsernameBox.Text,
-                        Correo = EmailBox.Text,
-                        Contrasenia = hasheadaHistorica,
-                        Fecha_Creacion = DateTime.Now
-                    };
+                        string response = await TCPClient.SendMessageAsync(message);
+                        if (response == "REGISTER_SUCCESS")
+                        {
+                            NavigationService.Navigate(new MainPage());
+                        }
+                        else
+                        {
+                            MessageBox.Show("El registro ha fallado. Por favor, inténtelo de nuevo.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error de conexión: " + ex.Message);
+                    }
+                }
 
-                    _context.Usuarios.Add(usu);
-                    _context.SaveChanges();
-
-                    NavigationService.Navigate(new Game());
+                NavigationService.Navigate(new Game());
                 }
             }
-        }
+        
         private void EmailBox_TextChanged(object sender, TextChangedEventArgs e) { }
 
         private void UsernameBox_TextChanged(object sender, TextChangedEventArgs e) { }
