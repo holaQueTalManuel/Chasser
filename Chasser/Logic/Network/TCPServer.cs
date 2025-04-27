@@ -6,13 +6,15 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using Chasser.Model;
+using Chasser.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Chasser.Logic
+namespace Chasser.Logic.Network
 {
     class TCPServer
     {
@@ -40,6 +42,7 @@ namespace Chasser.Logic
             {
                 using (var stream = client.GetStream())
                 using (var reader = new StreamReader(stream))
+                using (var writer = new StreamWriter(stream) { AutoFlush = true })
                 {
                     while (client.Connected)
                     {
@@ -51,19 +54,21 @@ namespace Chasser.Logic
                             ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString(),
                             message);
 
-                        switch (message)
+                        string[] parts = message.Split('|');
+                        if (parts.Length == 0) continue;
+
+                        string command = parts[0];
+
+                        switch (command)
                         {
-                            case message.StartsWith("REGISTER|"):
-                                string[] parts = message.Split('|');
-                                string username = parts[1];
-                                string password = parts[2];
-                                string email = parts[3];
-
-                                bool success = await RegisterUser(username, password, email);
-
-                                // Responde al cliente
-                                await writer.WriteLineAsync(success ? "REGISTER_SUCCESS" : "REGISTER_FAIL");
-                                await writer.FlushAsync();
+                            //manejar caso de registro
+                            case "REGISTER":
+                                await HandleRegister(parts, writer);
+                                break;
+                                //manejar caso de login
+                            case "LOGIN":
+                                await HandleLogin(parts, writer);
+                                break;
                         }
                     }
                 }
@@ -81,6 +86,62 @@ namespace Chasser.Logic
                 client.Dispose(); // Cierra la conexión
             }
         }
+
+        private async Task HandleLogin(string[] parts, StreamWriter writer)
+        {
+            if (parts.Length < 3)
+            {
+                await writer.WriteLineAsync("LOGIN_FAIL|Datos insuficientes");
+                return;
+            }
+
+            string username = parts[1].Trim();
+            string password = parts[2].Trim();
+
+            bool success = await ValidateLogin(username, password);
+
+            await writer.WriteLineAsync(success ? "LOGIN_SUCCESS" : "LOGIN_FAIL|Usuario o contraseña incorrectos");
+        }
+
+        private async Task<bool> ValidateLogin(string username, string password)
+        {
+            using var context = App.ServiceProvider.GetRequiredService<ChasserContext>();
+
+            var user = await context.Usuarios.FirstOrDefaultAsync(u => u.Nombre == username);
+            if (user == null) return false;
+
+            return BCryptPasswordHasher.VerifyPassword(password, user.Contrasenia);
+        }
+
+
+        private async Task HandleRegister(string[] parts, StreamWriter writer)
+        {
+            if (parts.Length < 4)
+            {
+                await writer.WriteLineAsync("REGISTER_FAIL|Datos insuficientes");
+                return;
+            }
+
+            string username = parts[1].Trim();
+            string password = parts[2].Trim();
+            string email = parts[3].Trim();
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email))
+            {
+                await writer.WriteLineAsync("REGISTER_FAIL|Campos vacíos");
+                return;
+            }
+
+            if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                await writer.WriteLineAsync("REGISTER_FAIL|Email inválido");
+                return;
+            }
+
+            bool success = await RegisterUser(username, password, email);
+            await writer.WriteLineAsync(success ? "REGISTER_SUCCESS" : "REGISTER_FAIL|Usuario ya existe");
+        }
+
         private async Task<bool> RegisterUser(string username, string password, string email)
         {
             using (var context = App.ServiceProvider.GetRequiredService<ChasserContext>())

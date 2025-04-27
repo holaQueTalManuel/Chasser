@@ -4,10 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Chasser.Logic
+namespace Chasser.Logic.Enums
 {
-    public enum Color
+    public enum MoveType
     {
-        Black, White
+        Normal,
+        DoubleNormal,
+        Diagon,
+        DoubleDiagon
     }
 }

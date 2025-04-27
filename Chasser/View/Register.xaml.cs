@@ -13,8 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.Extensions.DependencyInjection;
-using Chasser.Logic;
 using Chasser.Model;
+using Chasser.Logic.Network;
 
 namespace Chasser
 {
@@ -23,11 +23,9 @@ namespace Chasser
     /// </summary>
     public partial class Register : Page
     {
-        private readonly ChasserContext _context;
         public Register()
         {
             InitializeComponent();
-            _context = App.ServiceProvider.GetRequiredService<ChasserContext>();
         }
         private void LoginLink_Click(object sender, RoutedEventArgs e)
         {
@@ -37,8 +35,10 @@ namespace Chasser
         //await solo se puede utilzar dentro de un metodo asincrono
         private async void Register_Click(object sender, RoutedEventArgs e)
         {
-            if (PasswordBox.Password != null && ConfirmPasswordBox.Password != null && EmailBox.Text != null
-                && UsernameBox.Text != null)
+            if (!string.IsNullOrWhiteSpace(PasswordBox.Password) &&
+                !string.IsNullOrWhiteSpace(ConfirmPasswordBox.Password) &&
+                !string.IsNullOrWhiteSpace(EmailBox.Text) &&
+                !string.IsNullOrWhiteSpace(UsernameBox.Text))
             {
                 if (PasswordBox.Password == ConfirmPasswordBox.Password)
                 {
@@ -46,14 +46,19 @@ namespace Chasser
 
                     try
                     {
-                        string response = await TCPClient.SendMessageAsync(message);
-                        if (response == "REGISTER_SUCCESS")
+                        var response = await TCPClient.SendAndParseAsync(message);
+
+                        if (response.Status == "REGISTER_SUCCESS")
                         {
                             NavigationService.Navigate(new MainPage());
                         }
+                        else if (response.Status.StartsWith("REGISTER_FAIL"))
+                        {
+                            MessageBox.Show($"El registro ha fallado. Causa: {response.Reason}");
+                        }
                         else
                         {
-                            MessageBox.Show("El registro ha fallado. Por favor, inténtelo de nuevo.");
+                            MessageBox.Show("Respuesta inesperada del servidor.");
                         }
                     }
                     catch (Exception ex)
@@ -61,11 +66,19 @@ namespace Chasser
                         MessageBox.Show("Error de conexión: " + ex.Message);
                     }
                 }
-
-                NavigationService.Navigate(new Game());
+                else
+                {
+                    MessageBox.Show("Las contraseñas no coinciden.");
                 }
             }
-        
+            else
+            {
+                MessageBox.Show("Por favor, rellene todos los campos.");
+            }
+        }
+
+
+
         private void EmailBox_TextChanged(object sender, TextChangedEventArgs e) { }
 
         private void UsernameBox_TextChanged(object sender, TextChangedEventArgs e) { }

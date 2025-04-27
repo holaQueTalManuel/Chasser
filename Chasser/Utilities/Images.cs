@@ -5,8 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Chasser.Logic.Board;
+using Chasser.Logic.Enums;
 
-namespace Chasser.Logic
+namespace Chasser.Utilities
 {
     public static class Images
     {

@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Chasser.Moves;
 
-namespace Chasser.Logic
+namespace Chasser.Logic.Board
 {
     public class GameState
     {

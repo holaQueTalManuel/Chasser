@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Chasser.Logic
+namespace Chasser.Logic.Enums
 {
-    public enum EndReason
+    public enum PieceType
     {
-        Ñam,
-        JackSen
+        Obliterador, Sanguijuela, Tonel
     }
 }

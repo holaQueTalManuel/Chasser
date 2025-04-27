@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using Chasser.Logic.Network;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,6 +13,9 @@ namespace Chasser
     public partial class App : Application
     {
         public static IServiceProvider ServiceProvider { get; private set; }
+        private readonly string IP = "192.168.56.1";
+        private readonly int PORT = 5000;
+
         public App()
         {
             var serviceCollection = new ServiceCollection();
@@ -26,13 +30,30 @@ namespace Chasser
             ServiceProvider = serviceCollection.BuildServiceProvider();
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
             // Obtén la instancia de MainWindow desde DI
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            // Intentar conexión TCP (con manejo de errores)
+            try
+            {
+                await TCPClient.ConnectAsync(IP, PORT);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudo conectar al servidor: " + ex.Message,
+                              "Error crítico",
+                              MessageBoxButton.OK,
+                              MessageBoxImage.Error);
+
+                // Cierra la aplicación si no hay conexión
+                Shutdown();
+                return; // Importante para evitar que continúe
+            }
         }
     }
 

@@ -51,34 +51,6 @@ namespace Chasser
             }
 
         }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            //using (SqlConnection connection = new SqlConnection(connectionString))
-            //{
-            //    using (SqlCommand command = new SqlCommand(query, connection)) 
-            //    {
-            //        connection.Open(); // Abrir la conexión
-
-            //        // 3. Ejecutar la consulta (ejemplo con SqlDataReader)
-            //        using (SqlDataReader reader = command.ExecuteReader())
-            //        {
-
-            //            StringBuilder results = new StringBuilder();
-
-            //            while (reader.Read())
-            //            {
-            //                results.AppendLine($"ID: {reader["id"]}, Nombre: {reader["nombre"]}");
-            //            }
-
-            //            MessageBox.Show(results.ToString(), "Resultados");
-            //        }
-            //    }
-            //}
-            //MainFrame.Navigate(new Login());
-            //LeerUsuarios();
-
-        }
         
     }
 }

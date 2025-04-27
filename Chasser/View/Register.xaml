@@ -41,6 +41,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+
         <!-- Logo -->
         <Image Source="/Imgs/logo.jpg"
                Width="80" Height="80"

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows;
 
-namespace Chasser.Logic
+namespace Chasser.Converters
 {
     public class BoolToVisibilityConverter : IValueConverter
     {
