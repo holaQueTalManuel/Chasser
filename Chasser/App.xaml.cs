@@ -23,6 +23,7 @@ namespace Chasser
             // Registra tu DbContext con la cadena de conexión
             serviceCollection.AddDbContext<ChasserContext>(options =>
                 options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;"));
+            serviceCollection.AddSingleton<TCPServer>();
 
             // Registra la ventana principal
             serviceCollection.AddTransient<MainWindow>();
@@ -38,7 +39,7 @@ namespace Chasser
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
 
-            // Intentar conexión TCP (con manejo de errores)
+            // intentar conexión TCP
             try
             {
                 await TCPClient.ConnectAsync(IP, PORT);

@@ -13,5 +13,7 @@ namespace Chasser
         public ChasserContext(DbContextOptions<ChasserContext> options) : base(options) { }
 
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Partida> Partidas { get; set; }
+        public DbSet<Partida_Jugador> Partidas_Jugadores { get; set; }
     }
 }

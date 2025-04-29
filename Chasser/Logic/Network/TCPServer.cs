@@ -22,6 +22,12 @@ namespace Chasser.Logic.Network
         private readonly ChasserContext _context;
         public event Action<string> ClientConnected;
         public event Action<string, string> MessageReceived;
+        private string userPath = "user.txt";
+
+        public TCPServer(ChasserContext context)
+        {
+            _context = context;
+        }
 
         public async Task StartAsync(int port)
         {
@@ -65,9 +71,12 @@ namespace Chasser.Logic.Network
                             case "REGISTER":
                                 await HandleRegister(parts, writer);
                                 break;
-                                //manejar caso de login
+                            //manejar caso de login
                             case "LOGIN":
                                 await HandleLogin(parts, writer);
+                                break;
+                            case "START_GAME":
+                                await GenerateGame(parts, writer);
                                 break;
                         }
                     }
@@ -85,6 +94,79 @@ namespace Chasser.Logic.Network
             {
                 client.Dispose(); // Cierra la conexión
             }
+        }
+
+        private async Task GenerateGame(string[] parts, StreamWriter writer)
+        {
+            Usuario userId = null;
+            if (parts.Length < 1)
+            {
+                await writer.WriteLineAsync("START_GAME_FAIL|Datos insuficientes");
+                return;
+            }
+
+            if (File.Exists(userPath))
+            {
+                string savedUser = File.ReadAllText(userPath);
+                userId = _context.Usuarios.FirstOrDefault(u => u.Nombre == savedUser);
+
+                if (userId == null)
+                {
+                    await writer.WriteLineAsync("START_GAME_FAIL|No se ha encontrado ningun usuario logueado");
+                    return;
+                }
+
+            }
+
+            int playerId = _context.Usuarios
+                .Where(x => x.Id == userId.Id)
+                .Select(y => y.Id)
+                .FirstOrDefault();
+
+            bool success = await CreateGame(writer, playerId);
+            await writer.WriteLineAsync(success ? "START_GAME_SUCESS" : "START_GAME_FAIL|No se ha podido crear la partida");
+        }
+
+        private async Task<bool> CreateGame(StreamWriter writer, int id)
+        {
+            string gameCod = GenerateCod();
+
+            if (_context.Partidas.Any(p => p.Codigo == gameCod))
+            {
+                await writer.WriteLineAsync("LOGIN_FAIL|Se ha generado un mismo codigo, vuelve a intentarlo");
+                return false;
+            }
+            Partida newGame = new Partida
+            {
+
+                Ganador = "",
+                Codigo = gameCod,
+                Duracion = DateTime.Now,
+                Fecha_Creacion = DateTime.Now
+            };
+
+            Partida_Jugador newPartidaJugador = null;
+
+
+            newPartidaJugador = new Partida_Jugador
+            {
+                PartidaId = newGame.Id,
+                Jugador1 = id,
+            };
+
+            _context.Partidas.Add(newGame);
+            _context.Partidas_Jugadores.Add(newPartidaJugador);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        private string GenerateCod()
+        {
+            Random random = new Random();
+            const string caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Range(0, 8)
+                                        .Select(_ => caracteres[random.Next(caracteres.Length)])
+                                        .ToArray());
         }
 
         private async Task HandleLogin(string[] parts, StreamWriter writer)
@@ -105,9 +187,7 @@ namespace Chasser.Logic.Network
 
         private async Task<bool> ValidateLogin(string username, string password)
         {
-            using var context = App.ServiceProvider.GetRequiredService<ChasserContext>();
-
-            var user = await context.Usuarios.FirstOrDefaultAsync(u => u.Nombre == username);
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Nombre == username);
             if (user == null) return false;
 
             return BCryptPasswordHasher.VerifyPassword(password, user.Contrasenia);
@@ -144,25 +224,27 @@ namespace Chasser.Logic.Network
 
         private async Task<bool> RegisterUser(string username, string password, string email)
         {
-            using (var context = App.ServiceProvider.GetRequiredService<ChasserContext>())
+            if (_context.Usuarios.Any(u => u.Nombre == username))
+                return false; // Usuario ya existe
+            if (_context.Usuarios.Any(u => u.Correo == email))
             {
-                if (context.Usuarios.Any(u => u.Nombre == username))
-                    return false; // Usuario ya existe
-
-                string hasheadaHistorica = BCryptPasswordHasher.HashPassword(password);
-
-                Usuario usu = new Usuario
-                {
-                    Nombre = username,
-                    Correo = email,
-                    Contrasenia = hasheadaHistorica,
-                    Fecha_Creacion = DateTime.Now
-                };
-
-                _context.Usuarios.Add(usu);
-                await context.SaveChangesAsync();
-                return true;
+                return false;
             }
+
+            string hasheadaHistorica = BCryptPasswordHasher.HashPassword(password);
+
+            Usuario usu = new Usuario
+            {
+                Nombre = username,
+                Correo = email,
+                Contrasenia = hasheadaHistorica,
+                Fecha_Creacion = DateTime.Now
+            };
+
+            _context.Usuarios.Add(usu);
+            await _context.SaveChangesAsync();
+            return true;
+
         }
     }
 }

@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Chasser.Logic.Network;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Chasser
@@ -31,16 +32,32 @@ namespace Chasser
         {
             NavigationService.Navigate(new Game());
         }
-        private void JoinGame_Click(object sender, RoutedEventArgs e)
+        private async void JoinGame_Click(object sender, RoutedEventArgs e)
         {
-            EnterGameWindow window = new EnterGameWindow();
-            bool? result = window.ShowDialog();
+            string message = $"START_GAME|";
 
-            if (result == true)
+            try
             {
-                NavigationService.Navigate(new Game());
+                var response = await TCPClient.SendAndParseAsync(message);
+
+                if (response.Status == "START_GAME_SUCCESS")
+                {
+                    NavigationService.Navigate(new Game());
+                }
+                else if (response.Status.StartsWith("START_GAME_FAIL"))
+                {
+                    MessageBox.Show($"Error al unirse a la partida: {response.Reason}");
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al unirse a la partida: {ex.Message}");
             }
         }
     }
 }
+    
+
 
