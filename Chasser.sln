@@ -5,6 +5,10 @@ VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chasser", "Chasser\Chasser.csproj", "{08454096-E60E-4757-800E-C5CFA0965C93}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chasser.Server", "Chasser.Server\Chasser.Server.csproj", "{8259D81B-B9EB-454D-93A9-9A1647438DDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chasser.Common", "Chasser.Common\Chasser.Common.csproj", "{2D260132-0B24-47DD-AC80-14AAB6F1CBC8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{08454096-E60E-4757-800E-C5CFA0965C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08454096-E60E-4757-800E-C5CFA0965C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08454096-E60E-4757-800E-C5CFA0965C93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8259D81B-B9EB-454D-93A9-9A1647438DDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8259D81B-B9EB-454D-93A9-9A1647438DDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8259D81B-B9EB-454D-93A9-9A1647438DDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8259D81B-B9EB-454D-93A9-9A1647438DDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D260132-0B24-47DD-AC80-14AAB6F1CBC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D260132-0B24-47DD-AC80-14AAB6F1CBC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D260132-0B24-47DD-AC80-14AAB6F1CBC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D260132-0B24-47DD-AC80-14AAB6F1CBC8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

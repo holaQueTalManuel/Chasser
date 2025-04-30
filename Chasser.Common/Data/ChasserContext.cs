@@ -15,5 +15,8 @@ namespace Chasser
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Partida> Partidas { get; set; }
         public DbSet<Partida_Jugador> Partidas_Jugadores { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder options)
+            => options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;");
     }
 }
