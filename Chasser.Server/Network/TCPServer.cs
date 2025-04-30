@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Controls;
 using Chasser.Model;
 using Chasser.Utilities;
 using Microsoft.EntityFrameworkCore;
