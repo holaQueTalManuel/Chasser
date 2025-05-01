@@ -15,6 +15,7 @@ using System.Windows.Shapes;
 using Microsoft.Extensions.DependencyInjection;
 using Chasser.Model;
 using Chasser.Logic.Network;
+using Chasser.Common.Network;
 
 namespace Chasser
 {
@@ -42,23 +43,28 @@ namespace Chasser
             {
                 if (PasswordBox.Password == ConfirmPasswordBox.Password)
                 {
-                    string message = $"REGISTER|{UsernameBox.Text}|{PasswordBox.Password}|{EmailBox.Text}";
+                    var request = new RequestMessage
+                    {
+                        Command = "REGISTER",
+                        Data = new Dictionary<string, string>
+                        {
+                            { "username", UsernameBox.Text.Trim() },
+                            { "password", PasswordBox.Password.Trim() },
+                            { "email", EmailBox.Text.Trim() }
+                        }
+                    };
 
                     try
                     {
-                        var response = await TCPClient.SendAndParseAsync(message);
+                        var response = await TCPClient.SendJsonAsync(request);
 
                         if (response.Status == "REGISTER_SUCCESS")
                         {
                             NavigationService.Navigate(new MainPage());
                         }
-                        else if (response.Status.StartsWith("REGISTER_FAIL"))
-                        {
-                            MessageBox.Show($"El registro ha fallado. Causa: {response.Reason}");
-                        }
                         else
                         {
-                            MessageBox.Show("Respuesta inesperada del servidor.");
+                            MessageBox.Show($"El registro ha fallado. Causa: {response.Message}");
                         }
                     }
                     catch (Exception ex)
@@ -76,6 +82,7 @@ namespace Chasser
                 MessageBox.Show("Por favor, rellene todos los campos.");
             }
         }
+
 
 
 

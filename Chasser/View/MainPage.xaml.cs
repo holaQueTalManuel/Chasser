@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Chasser.Common.Network;
 using Chasser.Logic.Network;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,23 +23,21 @@ namespace Chasser
     /// </summary>
     public partial class MainPage : Page
     {
-        private readonly ChasserContext _context;
         public MainPage()
         {
             InitializeComponent();
-            _context = App.ServiceProvider.GetRequiredService<ChasserContext>();
         }
-        private void StartGame_Click(object sender, RoutedEventArgs e)
+        private async void StartGame_Click(object sender, RoutedEventArgs e)
         {
-            NavigationService.Navigate(new Game());
-        }
-        private async void JoinGame_Click(object sender, RoutedEventArgs e)
-        {
-            string message = $"START_GAME|";
+            var request = new RequestMessage
+            {
+                Command = "START_GAME",
+                Data = new Dictionary<string, string>() // Aunque esté vacío, el servidor espera un diccionario
+            };
 
             try
             {
-                var response = await TCPClient.SendAndParseAsync(message);
+                var response = await TCPClient.SendJsonAsync(request);
 
                 if (response.Status == "START_GAME_SUCCESS")
                 {
@@ -46,16 +45,23 @@ namespace Chasser
                 }
                 else if (response.Status.StartsWith("START_GAME_FAIL"))
                 {
-                    MessageBox.Show($"Error al unirse a la partida: {response.Reason}");
+                    MessageBox.Show($"Error al unirse a la partida: {response.Message}");
                 }
-
-
+                else
+                {
+                    MessageBox.Show("Respuesta inesperada del servidor.");
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al unirse a la partida: {ex.Message}");
             }
         }
+        private async void JoinGame_Click(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
     }
 }
     

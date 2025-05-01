@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.RightsManagement;
 using System.Text;
 using System.Threading.Tasks;
 using Chasser.Moves;
@@ -79,15 +78,6 @@ namespace Chasser.Logic.Board
                 Result = Result.WinB(CurrentPlayer);
             }
         }
-
-
-
-
-        //public string JugadorBlancas { get; set; }
-        //public string JugadorNegras { get; set; }
-        //public string TurnoActual { get; set; } // "Blancas" o "Negras"
-        //public List<string> Movimientos { get; set; } // Historial de movimientos
-        //public string[,] Tablero { get; set; } // Matriz 8x8 con piezas
     }
 
 }

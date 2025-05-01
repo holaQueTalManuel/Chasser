@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Chasser.Logic.Network;
+using Chasser.Common.Network;
 
 namespace Chasser
 {
@@ -40,23 +41,27 @@ namespace Chasser
 
             if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
             {
-                string message = $"LOGIN|{username}|{password}";
+                var request = new RequestMessage
+                {
+                    Command = "LOGIN",
+                    Data = new Dictionary<string, string>
+                    {
+                        { "username", username },
+                        { "password", password }
+                    }
+                };
 
                 try
                 {
-                    var response = await TCPClient.SendAndParseAsync(message);
+                    var response = await TCPClient.SendJsonAsync(request);
 
                     if (response.Status == "LOGIN_SUCCESS")
                     {
                         NavigationService.Navigate(new MainPage());
                     }
-                    else if (response.Status.StartsWith("LOGIN_FAIL"))
-                    {
-                        MessageBox.Show($"El inicio de sesión ha fallado. Causa: {response.Reason}");
-                    }
                     else
                     {
-                        MessageBox.Show("Respuesta inesperada del servidor.");
+                        MessageBox.Show($"Inicio de sesión fallido. Motivo: {response.Message}");
                     }
                 }
                 catch (Exception ex)
@@ -66,7 +71,7 @@ namespace Chasser
             }
             else
             {
-                MessageBox.Show("Ambos campos deben de estar rellenos como mínimo.");
+                MessageBox.Show("Ambos campos deben estar completos.");
             }
         }
 

@@ -2,6 +2,8 @@
 using System.Net.Sockets;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text.Json;
+using Chasser.Common.Network;
 
 namespace Chasser.Logic.Network
 {
@@ -78,6 +80,15 @@ namespace Chasser.Logic.Network
                 Disconnect();
                 throw new Exception("Error al enviar mensaje", ex);
             }
+        }
+
+        public static async Task<ResponseMessage> SendJsonAsync(RequestMessage message)
+        {
+            string json = JsonSerializer.Serialize(message);
+            await _writer.WriteLineAsync(json);
+
+            string response = await _reader.ReadLineAsync();
+            return JsonSerializer.Deserialize<ResponseMessage>(response);
         }
 
     }

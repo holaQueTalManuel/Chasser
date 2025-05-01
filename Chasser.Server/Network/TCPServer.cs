@@ -6,9 +6,14 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Chasser.Common.Logic;
+using Chasser.Common.Network;
 using Chasser.Model;
+using Chasser.Server.Network;
 using Chasser.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +27,10 @@ namespace Chasser.Logic.Network
         public event Action<string> ClientConnected;
         public event Action<string, string> MessageReceived;
         private string userPath = "user.txt";
+        private static Queue<TcpClient> waitingClients = new();
+        private TcpClient client;
+
+
 
         public TCPServer(ChasserContext context)
         {
@@ -59,23 +68,22 @@ namespace Chasser.Logic.Network
                             ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString(),
                             message);
 
-                        string[] parts = message.Split('|');
-                        if (parts.Length == 0) continue;
+                        //string[] parts = message.Split('|');
+                        RequestMessage msg = JsonSerializer.Deserialize<RequestMessage>(message);
+                        if (msg == null) continue;
 
-                        string command = parts[0];
-
-                        switch (command)
+                        switch (msg.Command)
                         {
                             //manejar caso de registro
                             case "REGISTER":
-                                await HandleRegister(parts, writer);
+                                await HandleRegister(msg.Data, writer);
                                 break;
                             //manejar caso de login
                             case "LOGIN":
-                                await HandleLogin(parts, writer);
+                                await HandleLogin(msg.Data, writer);
                                 break;
                             case "START_GAME":
-                                await GenerateGame(parts, writer);
+                                await GenerateGame(msg.Data, writer, client);
                                 break;
                         }
                     }
@@ -95,14 +103,14 @@ namespace Chasser.Logic.Network
             }
         }
 
-        private async Task GenerateGame(string[] parts, StreamWriter writer)
+        private async Task GenerateGame(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
         {
             Usuario userId = null;
-            if (parts.Length < 1)
-            {
-                await writer.WriteLineAsync("START_GAME_FAIL|Datos insuficientes");
-                return;
-            }
+            //if (parts.Length < 1)
+            //{
+            //    await writer.WriteLineAsync("START_GAME_FAIL|Datos insuficientes");
+            //    return;
+            //}
 
             if (File.Exists(userPath))
             {
@@ -111,7 +119,7 @@ namespace Chasser.Logic.Network
 
                 if (userId == null)
                 {
-                    await writer.WriteLineAsync("START_GAME_FAIL|No se ha encontrado ningun usuario logueado");
+                    await SendJsonAsync(writer, "START_GAME_FAIL", "No se ha encontrado ningun usuario logueado");
                     return;
                 }
 
@@ -123,7 +131,28 @@ namespace Chasser.Logic.Network
                 .FirstOrDefault();
 
             bool success = await CreateGame(writer, playerId);
-            await writer.WriteLineAsync(success ? "START_GAME_SUCESS" : "START_GAME_FAIL|No se ha podido crear la partida");
+
+            if (success)
+            {
+                while (waitingClients.Count > 0 && !client.Connected)
+                {
+                    waitingClients.Dequeue(); // Elimina clientes desconectados
+                }
+                if (waitingClients.Count < 2)
+                {
+                    waitingClients.Enqueue(client);
+                    await SendJsonAsync(writer, "WAITING_FOR_OPPONENT", "Esperando a un segundo jugador...");
+                }
+
+                
+                TcpClient opponent = waitingClients.Dequeue();
+                new GameSession(client, opponent);
+                await SendJsonAsync(writer, "START_GAME_SUCCESS", "Partida creada correctamente");
+            }
+            else
+            {
+                await SendJsonAsync(writer, "START_GAME_FAIL", "No se ha podido crear la partida\"");
+            }
         }
 
         private async Task<bool> CreateGame(StreamWriter writer, int id)
@@ -132,7 +161,7 @@ namespace Chasser.Logic.Network
 
             if (_context.Partidas.Any(p => p.Codigo == gameCod))
             {
-                await writer.WriteLineAsync("LOGIN_FAIL|Se ha generado un mismo codigo, vuelve a intentarlo");
+                await SendJsonAsync(writer, "CREATE_GAME_FAIL", "Se ha generado un mismo codigo, vuelve a intentarlo");
                 return false;
             }
             Partida newGame = new Partida
@@ -144,16 +173,15 @@ namespace Chasser.Logic.Network
                 Fecha_Creacion = DateTime.Now
             };
 
-            Partida_Jugador newPartidaJugador = null;
+            _context.Partidas.Add(newGame);
+            await _context.SaveChangesAsync(); // Ahora newGame.Id tiene valor
 
-
-            newPartidaJugador = new Partida_Jugador
+            Partida_Jugador newPartidaJugador = new Partida_Jugador
             {
                 PartidaId = newGame.Id,
                 Jugador1 = id,
             };
 
-            _context.Partidas.Add(newGame);
             _context.Partidas_Jugadores.Add(newPartidaJugador);
             await _context.SaveChangesAsync();
             return true;
@@ -168,20 +196,33 @@ namespace Chasser.Logic.Network
                                         .ToArray());
         }
 
-        private async Task HandleLogin(string[] parts, StreamWriter writer)
+        private async Task HandleLogin(Dictionary<string, string> data, StreamWriter writer)
         {
-            if (parts.Length < 3)
+            if (!data.ContainsKey("username") || !data.ContainsKey("password"))
             {
-                await writer.WriteLineAsync("LOGIN_FAIL|Datos insuficientes");
+                await SendJsonAsync(writer, "LOGIN_FAIL", "Datos insuficiente");
                 return;
             }
 
-            string username = parts[1].Trim();
-            string password = parts[2].Trim();
+            string username = data["username"];
+            string password = data["password"];
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                await SendJsonAsync(writer, "LOGIN_FAIL", "Usuario o contraseña vacíos");
+                return;
+            }
 
             bool success = await ValidateLogin(username, password);
 
-            await writer.WriteLineAsync(success ? "LOGIN_SUCCESS" : "LOGIN_FAIL|Usuario o contraseña incorrectos");
+            if (success)
+            {
+                await SendJsonAsync(writer, "LOGIN_SUCCESS", "Login completado correctamente");
+            }
+            else
+            {
+                await SendJsonAsync(writer, "LOGIN_SUCCESS", "Usuario o contraseña incorrectos");
+            }
         }
 
         private async Task<bool> ValidateLogin(string username, string password)
@@ -193,32 +234,39 @@ namespace Chasser.Logic.Network
         }
 
 
-        private async Task HandleRegister(string[] parts, StreamWriter writer)
+        private async Task HandleRegister(Dictionary<string, string> data, StreamWriter writer)
         {
-            if (parts.Length < 4)
+            if (!data.ContainsKey("username") || !data.ContainsKey("password") || !data.ContainsKey("email"))
             {
-                await writer.WriteLineAsync("REGISTER_FAIL|Datos insuficientes");
+                await SendJsonAsync(writer, "REGISTER_FAIL", "Datos insuficientes");
                 return;
             }
 
-            string username = parts[1].Trim();
-            string password = parts[2].Trim();
-            string email = parts[3].Trim();
+            string username = data["username"];
+            string password = data["password"];
+            string email = data["email"];
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email))
             {
-                await writer.WriteLineAsync("REGISTER_FAIL|Campos vacíos");
+                await SendJsonAsync(writer, "REGISTER_FAIL", "Campos vacíos");
                 return;
             }
 
             if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
             {
-                await writer.WriteLineAsync("REGISTER_FAIL|Email inválido");
+                await SendJsonAsync(writer, "REGISTER_FAIL", "Email inválido");
                 return;
             }
 
             bool success = await RegisterUser(username, password, email);
-            await writer.WriteLineAsync(success ? "REGISTER_SUCCESS" : "REGISTER_FAIL|Usuario ya existe");
+            if (success)
+            {
+                await SendJsonAsync(writer, "REGISTER_SUCCESS", "Registro completado correctamente");
+            }
+            else
+            {
+                await SendJsonAsync(writer, "REGISTER_FAIL", "Usuario ya existe");
+            }
         }
 
         private async Task<bool> RegisterUser(string username, string password, string email)
@@ -244,6 +292,33 @@ namespace Chasser.Logic.Network
             await _context.SaveChangesAsync();
             return true;
 
+        }
+        private async Task SendJsonAsync(StreamWriter writer, string status, string message, Dictionary<string, string>? data = null)
+        {
+            var response = new ResponseMessage
+            {
+                Status = status,
+                Message = message,
+                Data = data
+            };
+
+            string json = JsonSerializer.Serialize(response);
+            await writer.WriteLineAsync(json);
+        }
+    }
+
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            // Assuming you have a valid ChasserContext instance
+            using var context = new ChasserContext();
+
+            // Pass the required "context" parameter to the TCPServer constructor
+            var server = new TCPServer(context);
+
+            // Start the server on a specific port
+            await server.StartAsync(5000);
         }
     }
 }

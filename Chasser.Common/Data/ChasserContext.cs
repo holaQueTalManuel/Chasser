@@ -10,6 +10,7 @@ namespace Chasser
 {
     public class ChasserContext : DbContext
     {
+        public ChasserContext() { }
         public ChasserContext(DbContextOptions<ChasserContext> options) : base(options) { }
 
         public DbSet<Usuario> Usuarios { get; set; }

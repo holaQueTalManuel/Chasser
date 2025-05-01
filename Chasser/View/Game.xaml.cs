@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Chasser.Common.Network;
 using Chasser.Logic.Board;
 using Chasser.Moves;
 using Chasser.Utilities;
@@ -28,6 +31,8 @@ namespace Chasser
     public partial class Game : Page
     {
         private string userPath = "user.txt";
+        private StreamWriter writer;
+        private StreamReader reader;
         private GameState gameState;
         private readonly Image[,] pieceImages = new Image[7, 7];
         private readonly Rectangle[,] highlights = new Rectangle[7, 7];
@@ -40,12 +45,15 @@ namespace Chasser
         public Game()
         {
             InitializeComponent();
-            _context = App.ServiceProvider.GetRequiredService<ChasserContext>();
+
+            
+
             LeerUsuarios();
             InitializeBoard();
-
             gameState = new GameState(Player.White, Board.Initialize());
             DrawBoard(gameState.Board);
+
+            _ = ListenForOpponentAsync(); // Aquí lanzas la escucha en segundo plano
         }
 
         private void InitializeBoard()
@@ -154,21 +162,65 @@ namespace Chasser
             }
         }
 
-        private void HandleMove(Move move)
+        private async void HandleMove(Move move)
         {
-            gameState.MakeMove(move);
-            DrawBoard(gameState.Board);
-
-            if (gameState.IsGameOver())
+            // Crear mensaje en formato JSON
+            var request = new RequestMessage
             {
-                //ahora mismo se cierra, pero mañana domingo/ la semana que viene, lo importante es que llegue, el menu me da
-                //un poco igual
-                //a ver si hago el menu para que se vea y empiezo a hacer el tcp
-                Application.Current.Shutdown();
+                Command = "GAME_ACTION",
+                Data = new Dictionary<string, string>
+                {
+                    { "type", "MOVE" },
+                    { "fromRow", move.FromPos.Row.ToString() },
+                    { "fromCol", move.FromPos.Column.ToString() },
+                    { "toRow", move.ToPos.Row.ToString() },
+                    { "toCol", move.ToPos.Column.ToString() }
+                }
+                    };
+
+            // Enviar el mensaje al servidor
+            string json = JsonSerializer.Serialize(request);
+            await writer.WriteLineAsync(json); 
+
+            // Aquí podrías esperar la respuesta del servidor si lo deseas
+            string responseLine = await reader.ReadLineAsync();
+            var response = JsonSerializer.Deserialize<ResponseMessage>(responseLine);
+
+            if (response.Status == "ERROR")
+            {
+                MessageBox.Show("Movimiento inválido: " + response.Message);
             }
-            string turn = gameState.CurrentPlayer == Player.White ? "Blancas" : "Negras";
-            turnBlock.Text = "Turno: " + turn;
         }
+
+        private async Task ListenForOpponentAsync()
+        {
+            while (true)
+            {
+                string line = await reader.ReadLineAsync();
+                if (line == null) break;
+
+                var message = JsonSerializer.Deserialize<RequestMessage>(line);
+                if (message.Command == "GAME_ACTION" && message.Data["type"] == "MOVE")
+                {
+                    var move = new NormalMove(
+                        new Position(int.Parse(message.Data["fromRow"]), int.Parse(message.Data["fromCol"])),
+                        new Position(int.Parse(message.Data["toRow"]), int.Parse(message.Data["toCol"]))
+                    );
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        gameState.MakeMove(move);
+                        DrawBoard(gameState.Board);
+                    });
+                }
+                else if (message.Command == "GAME_OVER")
+                {
+                    MessageBox.Show("¡Fin del juego!");
+                    Application.Current.Shutdown();
+                }
+            }
+        }
+
 
         private void onFromPositionSelected(Position pos)
         {

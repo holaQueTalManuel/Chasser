@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Media;
 using Chasser.Logic.Enums;
 
 namespace Chasser.Logic.Board

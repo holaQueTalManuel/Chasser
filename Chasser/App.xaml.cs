@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.Data;
 using System.Windows;
 using Chasser.Logic.Network;
@@ -7,39 +8,21 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Chasser
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
         public static IServiceProvider ServiceProvider { get; private set; }
-        private readonly string IP = "192.168.56.1";
+        private readonly string IP = "localhost";
         private readonly int PORT = 5000;
-
-        public App()
-        {
-            var serviceCollection = new ServiceCollection();
-
-            // Registra tu DbContext con la cadena de conexión
-            serviceCollection.AddDbContext<ChasserContext>(options =>
-                options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;"));
-            serviceCollection.AddSingleton<TCPServer>();
-
-            // Registra la ventana principal
-            serviceCollection.AddTransient<MainWindow>();
-
-            ServiceProvider = serviceCollection.BuildServiceProvider();
-        }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            // Obtén la instancia de MainWindow desde DI
-            var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            ServiceProvider = services.BuildServiceProvider();
 
-            // intentar conexión TCP
+            // Intentar conexión TCP antes de mostrar la ventana
             try
             {
                 await TCPClient.ConnectAsync(IP, PORT);
@@ -50,12 +33,26 @@ namespace Chasser
                               "Error crítico",
                               MessageBoxButton.OK,
                               MessageBoxImage.Error);
-
-                // Cierra la aplicación si no hay conexión
                 Shutdown();
-                return; // Importante para evitar que continúe
+                return;
             }
+
+            // Mostrar la ventana principal
+            var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
+
+        private void ConfigureServices(IServiceCollection services)
+        {
+            // ✅ Registrar el DbContext
+            services.AddDbContext<ChasserContext>(options =>
+                options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;"));
+
+            // ✅ Registrar la ventana principal
+            services.AddTransient<MainWindow>();
+
+            // (opcional) otros servicios si necesitas
+            // services.AddSingleton<TCPServer>();
         }
     }
-
 }
