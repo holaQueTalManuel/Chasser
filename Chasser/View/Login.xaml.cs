@@ -57,7 +57,10 @@ namespace Chasser
 
                     if (response.Status == "LOGIN_SUCCESS")
                     {
-                        NavigationService.Navigate(new MainPage());
+                        var token = response.Data["token"];
+                        var mainPage = new MainPage();
+                        mainPage.SetAuthToken(token); // Pasa el token a la siguiente página
+                        NavigationService.Navigate(mainPage);
                     }
                     else
                     {

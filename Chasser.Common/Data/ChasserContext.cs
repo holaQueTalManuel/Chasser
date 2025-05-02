@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Chasser.Model;
+using Chasser.Common.Model;
 
-namespace Chasser
+namespace Chasser.Common.Data
 {
     public class ChasserContext : DbContext
     {
@@ -16,8 +16,57 @@ namespace Chasser
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Partida> Partidas { get; set; }
         public DbSet<Partida_Jugador> Partidas_Jugadores { get; set; }
+        public DbSet<Sesion_Usuario> Sesiones_Usuarios { get; set; }  
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
             => options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;");
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // Configuración para Partida
+            modelBuilder.Entity<Partida>(entity =>
+            {
+                entity.HasOne(p => p.Jugador1)
+                      .WithMany()
+                      .HasForeignKey(p => p.Jugador1Id)
+                      .OnDelete(DeleteBehavior.Restrict); // Evita el borrado en cascada para Jugador1
+
+                entity.HasOne(p => p.Jugador2)
+                      .WithMany()
+                      .HasForeignKey(p => p.Jugador2Id)
+                      .OnDelete(DeleteBehavior.Restrict); // Evita el borrado en cascada para Jugador2
+            });
+
+            // Configuración para Sesion_Usuario
+            modelBuilder.Entity<Sesion_Usuario>()
+                .HasOne(s => s.Usuario)
+                .WithMany()
+                .HasForeignKey(s => s.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade); // Borrado en cascada para Sesion_Usuario
+
+            modelBuilder.Entity<Sesion_Usuario>()
+                .HasIndex(su => su.Token)
+                .IsUnique();
+
+            // Configuración para Partida_Jugador
+            modelBuilder.Entity<Partida_Jugador>(entity =>
+            {
+                entity.HasOne(pj => pj.Partida)
+                      .WithMany(p => p.PartidasJugadores)
+                      .HasForeignKey(pj => pj.PartidaId)
+                      .OnDelete(DeleteBehavior.Cascade); // Borrado en cascada para Partida_Jugador
+
+                entity.HasOne(pj => pj.Jugador1)
+                      .WithMany()
+                      .HasForeignKey(pj => pj.Jugador1Id)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(pj => pj.Jugador2)
+                      .WithMany()
+                      .HasForeignKey(pj => pj.Jugador2Id)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
     }
 }

@@ -88,8 +88,15 @@ namespace Chasser.Logic.Network
             await _writer.WriteLineAsync(json);
 
             string response = await _reader.ReadLineAsync();
+
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                throw new Exception("No se recibió respuesta del servidor.");
+            }
+
             return JsonSerializer.Deserialize<ResponseMessage>(response);
         }
+
 
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Page x:Class="Chasser.Login"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:Converters="clr-namespace:Chasser.Converters"
+      xmlns:conv="clr-namespace:Chasser.Converters"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:Chasser"
@@ -71,7 +71,7 @@
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
-                               Visibility="{Binding Text, ElementName=UsernameBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding Text, ElementName=UsernameBox}"/>
                 </Grid>
 
                 <!-- Contraseña con placeholder -->
@@ -94,7 +94,7 @@
                        Margin="14,0,0,0"
                        VerticalAlignment="Center"
                        IsHitTestVisible="False"
-                       Visibility="{Binding Tag, ElementName=PasswordBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                       Visibility="{Binding Tag, ElementName=PasswordBox}"/>
 
                     <!-- Botón de ojo -->
                     <Button Content="👁️"

@@ -4,7 +4,6 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:Chasser"
-            xmlns:Converters="clr-namespace:Chasser.Converters"
 
       mc:Ignorable="d" 
       d:DesignHeight="700" d:DesignWidth="900"
@@ -75,7 +74,7 @@
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
-                               Visibility="{Binding Text, ElementName=EmailBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding Text, ElementName=EmailBox}"/>
                 </Grid>
 
                 <!-- Usuario -->
@@ -88,7 +87,7 @@
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
-                               Visibility="{Binding Text, ElementName=UsernameBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding Text, ElementName=UsernameBox}"/>
                 </Grid>
 
                 <!-- Contraseña -->
@@ -101,7 +100,7 @@
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
-                               Visibility="{Binding Tag, ElementName=PasswordBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding Tag, ElementName=PasswordBox}"/>
                 </Grid>
 
                 <!-- Confirmar Contraseña -->
@@ -114,7 +113,7 @@
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
-                               Visibility="{Binding Tag, ElementName=ConfirmPasswordBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding Tag, ElementName=ConfirmPasswordBox}"/>
                 </Grid>
 
                 <!-- Botón de registro -->

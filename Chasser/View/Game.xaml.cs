@@ -20,8 +20,8 @@ using Chasser.Logic.Board;
 using Chasser.Moves;
 using Chasser.Utilities;
 using Chasser.View;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using Chasser.Common.Model;
+using Chasser.Common.Data;
 
 namespace Chasser
 {

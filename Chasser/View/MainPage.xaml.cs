@@ -23,21 +23,44 @@ namespace Chasser
     /// </summary>
     public partial class MainPage : Page
     {
+        private string _authToken;
+
         public MainPage()
         {
             InitializeComponent();
+        }
+
+        // Cambiar el código para no intentar asignar directamente a la propiedad de solo lectura 'SessionToken'.
+        // En su lugar, se puede usar una propiedad auxiliar o un método para almacenar el token en otra parte.
+
+        public void SetAuthToken(string token)
+        {
+            _authToken = token;
+
+            // Guardar el token en una variable auxiliar o en otra propiedad que permita escritura.
+            Properties.Settings.Default["SessionToken"] = token; // Usar el índice para asignar valores.
+            Properties.Settings.Default.Save();
         }
         private async void StartGame_Click(object sender, RoutedEventArgs e)
         {
             var request = new RequestMessage
             {
                 Command = "START_GAME",
-                Data = new Dictionary<string, string>() // Aunque esté vacío, el servidor espera un diccionario
+                Data = new Dictionary<string, string>
+                {
+                    { "token", _authToken } // ¡Envía el token aquí!
+                }
             };
 
             try
             {
                 var response = await TCPClient.SendJsonAsync(request);
+
+                if (response == null)
+                {
+                    MessageBox.Show("La respuesta del servidor fue nula.");
+                    return;
+                }
 
                 if (response.Status == "START_GAME_SUCCESS")
                 {

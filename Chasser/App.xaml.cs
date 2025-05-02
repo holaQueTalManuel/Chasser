@@ -5,6 +5,7 @@ using System.Windows;
 using Chasser.Logic.Network;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Chasser.Common.Data;
 
 namespace Chasser
 {

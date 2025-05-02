@@ -11,6 +11,7 @@ using System.Windows.Shapes;
 using Microsoft.Data.SqlClient;
 using System.Linq;
 using System.IO;
+using Chasser.Common.Data;
 
 namespace Chasser
 {

@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Chasser.Common.Logic;
@@ -17,15 +16,13 @@ namespace Chasser.Server.Network
         private TcpClient player1;
         private TcpClient player2;
         private bool isGameOver = false;
-        private GameSessionLogic sessionLogic = new GameSessionLogic();
-
+        private GameSessionLogic sessionLogic = new();
 
         public GameSession(TcpClient p1, TcpClient p2)
         {
             player1 = p1;
             player2 = p2;
             _ = RunSessionAsync();
-
         }
 
         private async Task RunSessionAsync()
@@ -33,48 +30,45 @@ namespace Chasser.Server.Network
             using var stream1 = player1.GetStream();
             using var stream2 = player2.GetStream();
 
-            var localReader = new StreamReader(stream1);
-            var localWriter = new StreamWriter(stream1) { AutoFlush = true };
-            var OppReader = new StreamReader(stream2);
-            var OppWriter = new StreamWriter(stream2) { AutoFlush = true };
+            var reader1 = new StreamReader(stream1);
+            var writer1 = new StreamWriter(stream1) { AutoFlush = true };
 
-            await SendJsonAsync(localWriter, "START_GAME", Player.White.ToString(), new Dictionary<string, string> { { "opponent", Player.Black.ToString() } });
-            await SendJsonAsync(OppWriter, "START_GAME", Player.Black.ToString(), new Dictionary<string, string> { { "opponent", Player.White.ToString() } });
+            var reader2 = new StreamReader(stream2);
+            var writer2 = new StreamWriter(stream2) { AutoFlush = true };
 
-            var task1 = RelayMessages(localReader, OppWriter);
-            var task2 = RelayMessages(OppReader, localWriter);
+            await SendJsonAsync(writer1, "START_GAME", "White", new() { { "opponent", "Black" } });
+            await SendJsonAsync(writer2, "START_GAME", "Black", new() { { "opponent", "White" } });
 
-            await Task.WhenAny(task1, task2); // Termina si alguno se desconecta
+            var task1 = RelayMessages(reader1, writer2);
+            var task2 = RelayMessages(reader2, writer1);
+
+            await Task.WhenAny(task1, task2);
             isGameOver = true;
         }
-        private async Task RelayMessages(StreamReader readerFrom, StreamWriter writerTo)
+
+        private async Task RelayMessages(StreamReader reader, StreamWriter writer)
         {
             try
             {
                 while (!isGameOver)
                 {
-                    var line = await readerFrom.ReadLineAsync();
-                    if (line == null)
-                    {
-                        break; // Se desconectó
-                    }
+                    var line = await reader.ReadLineAsync();
+                    if (line == null) break;
 
-                    // Asumimos que el mensaje contiene un movimiento en formato JSON
                     var message = JsonSerializer.Deserialize<RequestMessage>(line);
                     if (message != null && message.Data.TryGetValue("type", out string type) && type == "MOVE")
                     {
-                        await HandleMoveAsync(message.ToString(), writerTo);
+                        await HandleMoveAsync(message, writer);
                     }
                     else
                     {
-                        // Si no es un movimiento, se puede enviar un error
-                        await SendJsonAsync(writerTo, "ERROR", "Mensaje no reconocido");
+                        await SendJsonAsync(writer, "ERROR", "Mensaje no reconocido");
                     }
                 }
             }
             catch
             {
-                // Se rompe si hay un error de red
+                // Silenciar errores por desconexión
             }
             finally
             {
@@ -82,12 +76,8 @@ namespace Chasser.Server.Network
             }
         }
 
-
-        private async Task HandleMoveAsync(string line, StreamWriter writerTo)
+        private async Task HandleMoveAsync(RequestMessage message, StreamWriter writer)
         {
-            var message = JsonSerializer.Deserialize<RequestMessage>(line);
-
-            // Construye el movimiento a partir del mensaje recibido
             var move = new NormalMove(
                 new Position(int.Parse(message.Data["fromRow"]), int.Parse(message.Data["fromCol"])),
                 new Position(int.Parse(message.Data["toRow"]), int.Parse(message.Data["toCol"]))
@@ -95,19 +85,13 @@ namespace Chasser.Server.Network
 
             if (sessionLogic.TryMakeMove(move, out string error))
             {
-                // Reenvía el movimiento al otro jugador
-                await writerTo.WriteLineAsync(line);
-
+                await writer.WriteLineAsync(JsonSerializer.Serialize(message));
                 if (sessionLogic.IsGameOver())
-                {
-                    await writerTo.WriteLineAsync("GAME_OVER");
-                    // Puedes notificar también al jugador que envió el movimiento
-                }
+                    await writer.WriteLineAsync("GAME_OVER");
             }
             else
             {
-                // Notificar error al cliente
-                await writerTo.WriteLineAsync(JsonSerializer.Serialize(new ResponseMessage
+                await writer.WriteLineAsync(JsonSerializer.Serialize(new ResponseMessage
                 {
                     Status = "ERROR",
                     Message = error
@@ -124,8 +108,7 @@ namespace Chasser.Server.Network
                 Data = data
             };
 
-            string json = JsonSerializer.Serialize(response);
-            await writer.WriteLineAsync(json);
+            await writer.WriteLineAsync(JsonSerializer.Serialize(response));
         }
     }
 }
