@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Azure.Core;
 using Chasser.Common.Network;
 using Chasser.Logic.Network;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,7 +66,15 @@ namespace Chasser
 
                 if (response.Status == "START_GAME_SUCCESS")
                 {
-                    NavigationService.Navigate(new Game());
+                    // Cambiar el acceso a la clave "codigo" en el diccionario.
+                    if (response.Data != null && response.Data.TryGetValue("codigo", out string codigo))
+                    {
+                        NavigationService.Navigate(new Game(codigo));
+                    }
+                    else
+                    {
+                        MessageBox.Show("El código de la partida no se encontró en la respuesta.");
+                    }
                 }
                 else if (response.Status.StartsWith("START_GAME_FAIL"))
                 {
@@ -82,9 +92,40 @@ namespace Chasser
         }
         private async void JoinGame_Click(object sender, RoutedEventArgs e)
         {
-            
+
         }
 
+        private async void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 1. Notificar al servidor (opcional pero recomendado en aplicaciones multi-usuario)
+                var request = new RequestMessage
+                {
+                    Command = "LOGOUT",  // Mejor que "EXIT_APP" para claridad
+                    Data = new Dictionary<string, string> { { "token", _authToken } }
+                };
+
+                var response = await TCPClient.SendJsonAsync(request); // No esperamos respuesta crítica
+                if (response.Status == "LOGOUT_SUCCESS")
+                {
+                    _authToken = null; // Limpiar el token
+                    Properties.Settings.Default["SessionToken"] = null; // Limpiar el token en la configuración
+                    Properties.Settings.Default.Save(); // Guardar cambios
+                    NavigationService.Navigate(new Login());
+                }
+
+            }
+            catch (Exception ex)
+            {
+                // Log opcional (no mostrar al usuario si es un cierre)
+                Console.WriteLine($"Error al notificar cierre al servidor: {ex.Message}");
+            }
+            finally
+            {
+                
+            }
+        }
     }
 }
     

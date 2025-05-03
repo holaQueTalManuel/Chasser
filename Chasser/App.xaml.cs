@@ -6,6 +6,7 @@ using Chasser.Logic.Network;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Chasser.Common.Data;
+using Chasser.Server;
 
 namespace Chasser
 {
@@ -22,6 +23,8 @@ namespace Chasser
             var services = new ServiceCollection();
             ConfigureServices(services);
             ServiceProvider = services.BuildServiceProvider();
+
+            
 
             // Intentar conexión TCP antes de mostrar la ventana
             try
@@ -41,6 +44,15 @@ namespace Chasser
             // Mostrar la ventana principal
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            //if (await AuthHelper.IsUserAuthenticatedAsync())
+            //{
+            //    mainWindow.MainFrame.Navigate(new MainPage());
+            //}
+            //else
+            //{
+            //    mainWindow.MainFrame.Navigate(new Login());
+            //}
         }
 
         private void ConfigureServices(IServiceCollection services)

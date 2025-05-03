@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Chasser.Common.Migrations
 {
     [DbContext(typeof(ChasserContext))]
-    [Migration("20250502142844_AddSesionUsuarioTable2")]
-    partial class AddSesionUsuarioTable2
+    [Migration("20250503121109_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -37,8 +37,8 @@ namespace Chasser.Common.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("Duracion")
-                        .HasColumnType("datetime2");
+                    b.Property<TimeSpan>("Duracion")
+                        .HasColumnType("time");
 
                     b.Property<DateTime>("Fecha_Creacion")
                         .HasColumnType("datetime2");
@@ -50,7 +50,7 @@ namespace Chasser.Common.Migrations
                     b.Property<int>("Jugador1Id")
                         .HasColumnType("int");
 
-                    b.Property<int>("Jugador2Id")
+                    b.Property<int?>("Jugador2Id")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -64,28 +64,18 @@ namespace Chasser.Common.Migrations
 
             modelBuilder.Entity("Chasser.Common.Model.Partida_Jugador", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Jugador1Id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Jugador2Id")
-                        .HasColumnType("int");
-
                     b.Property<int>("PartidaId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("Jugador1Id");
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
 
-                    b.HasIndex("Jugador2Id");
+                    b.HasKey("PartidaId", "UsuarioId");
 
-                    b.HasIndex("PartidaId");
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("Partidas_Jugadores");
                 });
@@ -165,8 +155,7 @@ namespace Chasser.Common.Migrations
                     b.HasOne("Chasser.Common.Model.Usuario", "Jugador2")
                         .WithMany()
                         .HasForeignKey("Jugador2Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Jugador1");
 
@@ -175,29 +164,21 @@ namespace Chasser.Common.Migrations
 
             modelBuilder.Entity("Chasser.Common.Model.Partida_Jugador", b =>
                 {
-                    b.HasOne("Chasser.Common.Model.Usuario", "Jugador1")
-                        .WithMany()
-                        .HasForeignKey("Jugador1Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Chasser.Common.Model.Usuario", "Jugador2")
-                        .WithMany()
-                        .HasForeignKey("Jugador2Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Chasser.Common.Model.Partida", "Partida")
                         .WithMany("PartidasJugadores")
                         .HasForeignKey("PartidaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Jugador1");
-
-                    b.Navigation("Jugador2");
+                    b.HasOne("Chasser.Common.Model.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Partida");
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Chasser.Common.Model.Sesion_Usuario", b =>

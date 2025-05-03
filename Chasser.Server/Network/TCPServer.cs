@@ -14,6 +14,7 @@ using Chasser.Server.Network;
 using Microsoft.EntityFrameworkCore;
 using Chasser.Common.Data;
 using Chasser.Common.Model;
+using Azure.Core;
 
 namespace Chasser.Logic.Network
 {
@@ -25,6 +26,7 @@ namespace Chasser.Logic.Network
         public event Action<string, string> MessageReceived;
         private string userPath = "user.txt";
         private static Queue<TcpClient> waitingClients = new();
+        string gameCod = "";
 
         public TCPServer(ChasserContext context)
         {
@@ -91,6 +93,10 @@ namespace Chasser.Logic.Network
                         case "START_GAME":
                             await GenerateGame(msg.Data, writer, client);
                             break;
+                        case "LOGOUT":
+                            await HandleLogOut(msg.Data, writer);
+                            break;
+                        
                         default:
                             Console.WriteLine($"Comando no reconocido: {msg.Command}");
                             break;
@@ -109,6 +115,74 @@ namespace Chasser.Logic.Network
             {
                 client.Dispose();
                 Console.WriteLine("Cliente desconectado.");
+            }
+        }
+
+        //private async Task HandleValidateToken(Dictionary<string, string> data, StreamWriter writer)
+        //{
+        //    try
+        //    {
+        //        // 1. Validar existencia del token
+        //        if (!data.TryGetValue("token", out string? token) || string.IsNullOrWhiteSpace(token))
+        //        {
+        //            await SendJsonAsync(writer, "TOKEN_INVALID", new { error = "Token requerido" });
+        //            return;
+        //        }
+
+        //        // 2. Validar contra la base de datos
+        //        var user = await ValidateToken(token);
+
+        //        // 3. Responder
+        //        await SendJsonAsync(writer,
+        //            user != null ? "TOKEN_VALID" : "TOKEN_INVALID",
+        //            new
+        //            {
+        //                valid = user != null,
+        //                userId = user?.Id,
+        //                username = user?.Nombre
+        //            });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Error validando token: {ex.Message}");
+        //        await SendJsonAsync(writer, "VALIDATION_ERROR", new { error = ex.Message });
+        //    }
+        //}
+
+        private async Task HandleLogOut(Dictionary<string, string> data, StreamWriter writer)
+        {
+            Console.WriteLine("Procesando LOGOUT...");
+            if (!data.ContainsKey("token"))
+            {
+                Console.WriteLine("Falta el token.");
+                await SendJsonAsync(writer, "LOGOUT_FAIL", "Token necesario");
+                return;
+            }
+            string token = data["token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Console.WriteLine("Token vacío.");
+                await SendJsonAsync(writer, "LOGOUT_FAIL", "Token vacío");
+                return;
+            }
+            // Llamar al método ValidateToken para comprobar el token
+            Usuario user = await ValidateToken(token);
+            // Si el token no es válido o ha expirado, se termina la operación
+            if (user == null)
+            {
+                await SendJsonAsync(writer, "LOGOUT_FAIL", "Token inválido o expirado");
+                return;
+            }
+            // Continuar con la lógica para cerrar sesión
+            Console.WriteLine($"Usuario validado: {user.Nombre}");
+            // Eliminar la sesión del usuario
+            var session = await _context.Sesiones_Usuarios.FirstOrDefaultAsync(s => s.UsuarioId == user.Id);
+            if (session != null)
+            {
+                _context.Sesiones_Usuarios.Remove(session);
+                await _context.SaveChangesAsync();
+                Console.WriteLine("Sesión eliminada correctamente.");
+                await SendJsonAsync(writer, "LOGOUT_SUCCESS", "Sesión cerrada correctamente");
             }
         }
 
@@ -164,14 +238,19 @@ namespace Chasser.Logic.Network
                     {
                         waitingClients.Enqueue(client);
                         Console.WriteLine("Jugador añadido a la cola. Esperando oponente...");
-                        await SendJsonAsync(writer, "WAITING_FOR_OPPONENT", "Esperando a un segundo jugador...");
+                        await SendJsonAsync(
+                            writer,
+                            "START_GAME_SUCCESS",
+                            "Esperando a otro jugador",
+                            new Dictionary<string, string> { { "codigo", gameCod } }
+                        );
                     }
                     else
                     {
                         TcpClient opponent = waitingClients.Dequeue();
                         Console.WriteLine("Segundo jugador encontrado. Iniciando sesión de juego.");
                         new GameSession(client, opponent);
-                        await SendJsonAsync(writer, "START_GAME_SUCCESS", "Partida creada correctamente");
+
                     }
                 }
                 else
@@ -182,8 +261,9 @@ namespace Chasser.Logic.Network
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error en GenerateGame: {ex.Message}");
-                await SendJsonAsync(writer, "START_GAME_FAIL", $"Error interno en el servidor: {ex.Message}");
+                string fullError = ex.ToString();
+                Console.WriteLine($"Error en GenerateGame:\n{fullError}");
+                await SendJsonAsync(writer, "START_GAME_FAIL", $"Error interno en el servidor: {fullError}");
             }
         }
 
@@ -193,7 +273,7 @@ namespace Chasser.Logic.Network
         {
             Console.WriteLine("Creando partida...");
 
-            string gameCod = GenerateCod();
+            gameCod = GenerateCod();
             Console.WriteLine($"Código generado para partida: {gameCod}");
 
             if (_context.Partidas.Any(p => p.Codigo == gameCod))
@@ -203,12 +283,22 @@ namespace Chasser.Logic.Network
                 return false;
             }
 
+            var jugador1 = await _context.Usuarios.FindAsync(id);
+
+            if (jugador1 == null)
+            {
+                Console.WriteLine("El usuario no existe.");
+                await SendJsonAsync(writer, "CREATE_GAME_FAIL", "El usuario no existe");
+                return false;
+            }
+
             var newGame = new Partida
             {
                 Ganador = "",
                 Codigo = gameCod,
-                Duracion = DateTime.Now,
-                Fecha_Creacion = DateTime.Now
+                Jugador1Id = jugador1.Id,
+                Duracion = TimeSpan.Zero,
+                Fecha_Creacion = DateTime.UtcNow,
             };
 
             _context.Partidas.Add(newGame);
@@ -218,7 +308,7 @@ namespace Chasser.Logic.Network
             var newPartidaJugador = new Partida_Jugador
             {
                 PartidaId = newGame.Id,
-                Jugador1Id = id
+                UsuarioId = id
             };
 
             _context.Partidas_Jugadores.Add(newPartidaJugador);

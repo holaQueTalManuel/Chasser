@@ -51,20 +51,17 @@ namespace Chasser.Common.Data
             // Configuración para Partida_Jugador
             modelBuilder.Entity<Partida_Jugador>(entity =>
             {
+                entity.HasKey(pj => new { pj.PartidaId, pj.UsuarioId });
+
                 entity.HasOne(pj => pj.Partida)
                       .WithMany(p => p.PartidasJugadores)
                       .HasForeignKey(pj => pj.PartidaId)
-                      .OnDelete(DeleteBehavior.Cascade); // Borrado en cascada para Partida_Jugador
+                      .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(pj => pj.Jugador1)
+                entity.HasOne(pj => pj.Usuario)
                       .WithMany()
-                      .HasForeignKey(pj => pj.Jugador1Id)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(pj => pj.Jugador2)
-                      .WithMany()
-                      .HasForeignKey(pj => pj.Jugador2Id)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .HasForeignKey(pj => pj.UsuarioId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
 

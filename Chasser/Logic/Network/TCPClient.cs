@@ -56,32 +56,6 @@ namespace Chasser.Logic.Network
             public string Reason { get; set; }
         }
 
-        public static async Task<ServerResponse> SendAndParseAsync(string message)
-        {
-            if (_client == null || !_client.Connected)
-                throw new InvalidOperationException("Cliente no conectado");
-
-            try
-            {
-                await _writer.WriteLineAsync(message);
-                string response = await _reader.ReadLineAsync();
-
-                if (string.IsNullOrEmpty(response))
-                    return new ServerResponse { Status = "EMPTY", Reason = "Respuesta vacía" };
-
-                string[] parts = response.Split('|');
-                string status = parts[0];
-                string reason = parts.Length > 1 ? parts[1] : "Sin motivo";
-
-                return new ServerResponse { Status = status, Reason = reason };
-            }
-            catch (Exception ex)
-            {
-                Disconnect();
-                throw new Exception("Error al enviar mensaje", ex);
-            }
-        }
-
         public static async Task<ResponseMessage> SendJsonAsync(RequestMessage message)
         {
             string json = JsonSerializer.Serialize(message);

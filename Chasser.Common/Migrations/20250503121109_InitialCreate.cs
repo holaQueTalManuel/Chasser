@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Chasser.Common.Migrations
 {
     /// <inheritdoc />
-    public partial class AddSesionUsuarioTable2 : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -36,9 +36,9 @@ namespace Chasser.Common.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Ganador = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Jugador1Id = table.Column<int>(type: "int", nullable: false),
-                    Jugador2Id = table.Column<int>(type: "int", nullable: false),
+                    Jugador2Id = table.Column<int>(type: "int", nullable: true),
                     Codigo = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Duracion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Duracion = table.Column<TimeSpan>(type: "time", nullable: false),
                     Fecha_Creacion = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -89,15 +89,13 @@ namespace Chasser.Common.Migrations
                 name: "Partidas_Jugadores",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
                     PartidaId = table.Column<int>(type: "int", nullable: false),
-                    Jugador1Id = table.Column<int>(type: "int", nullable: false),
-                    Jugador2Id = table.Column<int>(type: "int", nullable: false)
+                    UsuarioId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Partidas_Jugadores", x => x.Id);
+                    table.PrimaryKey("PK_Partidas_Jugadores", x => new { x.PartidaId, x.UsuarioId });
                     table.ForeignKey(
                         name: "FK_Partidas_Jugadores_Partidas_PartidaId",
                         column: x => x.PartidaId,
@@ -105,17 +103,11 @@ namespace Chasser.Common.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Partidas_Jugadores_Usuarios_Jugador1Id",
-                        column: x => x.Jugador1Id,
+                        name: "FK_Partidas_Jugadores_Usuarios_UsuarioId",
+                        column: x => x.UsuarioId,
                         principalTable: "Usuarios",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Partidas_Jugadores_Usuarios_Jugador2Id",
-                        column: x => x.Jugador2Id,
-                        principalTable: "Usuarios",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -129,19 +121,9 @@ namespace Chasser.Common.Migrations
                 column: "Jugador2Id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Partidas_Jugadores_Jugador1Id",
+                name: "IX_Partidas_Jugadores_UsuarioId",
                 table: "Partidas_Jugadores",
-                column: "Jugador1Id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Partidas_Jugadores_Jugador2Id",
-                table: "Partidas_Jugadores",
-                column: "Jugador2Id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Partidas_Jugadores_PartidaId",
-                table: "Partidas_Jugadores",
-                column: "PartidaId");
+                column: "UsuarioId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sesiones_Usuarios_Token",

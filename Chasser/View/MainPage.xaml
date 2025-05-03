@@ -62,6 +62,10 @@
             <Button Content="Unirse a Partida"
                     Style="{StaticResource MainButtonStyle}"
                     Click="JoinGame_Click"/>
+
+            <Button Content="Salir"
+                Style="{StaticResource MainButtonStyle}"
+                Click="Exit_Click"/>
         </StackPanel>
     </Grid>
 </Page>

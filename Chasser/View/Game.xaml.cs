@@ -31,6 +31,7 @@ namespace Chasser
     public partial class Game : Page
     {
         private string userPath = "user.txt";
+        private string gameCod = "";
         private StreamWriter writer;
         private StreamReader reader;
         private GameState gameState;
@@ -42,18 +43,23 @@ namespace Chasser
         private Position selectedPos = null;
 
         private readonly ChasserContext _context;
-        public Game()
+        public Game(string cod)
         {
             InitializeComponent();
 
-            
+            this.gameCod = cod;
+            // Cuando recibas el código del servidor
+            gameCodeBlock.Text = $"Código de partida: {gameCod}";
 
-            LeerUsuarios();
+            //LeerUsuarios();
             InitializeBoard();
             gameState = new GameState(Player.White, Board.Initialize());
             DrawBoard(gameState.Board);
 
-            _ = ListenForOpponentAsync(); // Aquí lanzas la escucha en segundo plano
+            //CONTROLAR QUE HAYA 2 JUGADORES EN LA PARTIDA, VER PORQUE LOS READERS WRITERS SON NULOS Y MIENTRAS QUE NO HAYA 2,
+            //NO SE PUEDA JUGAR, BLOQUEANDO LOS MOVIEMIENTOS O ALGO
+
+            //_ = ListenForOpponentAsync(); // Aquí lanzas la escucha en segundo plano
         }
 
         private void InitializeBoard()

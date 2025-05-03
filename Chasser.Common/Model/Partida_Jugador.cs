@@ -11,12 +11,10 @@ namespace Chasser.Common.Model
     {
         public int Id { get; set; }
         public int PartidaId { get; set; }
-        public int Jugador1Id { get; set; }
-        public int Jugador2Id { get; set; }
+        public int UsuarioId { get; set; }
 
         public Partida Partida { get; set; }
-        public Usuario Jugador1 { get; set; }
-        public Usuario Jugador2 { get; set; }
-
+        public Usuario Usuario { get; set; }
     }
+
 }
