@@ -93,6 +93,9 @@ namespace Chasser.Logic.Network
                         case "START_GAME":
                             await GenerateGame(msg.Data, writer, client);
                             break;
+                        case "JOIN_GAME":
+                            await JoinGame(msg.Data, writer, client);
+                            break;
                         case "LOGOUT":
                             await HandleLogOut(msg.Data, writer);
                             break;
@@ -116,6 +119,77 @@ namespace Chasser.Logic.Network
                 client.Dispose();
                 Console.WriteLine("Cliente desconectado.");
             }
+        }
+
+        private async Task JoinGame(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
+        {
+            Console.WriteLine("Procesando JOIN_GAME...");
+
+            if (!data.TryGetValue("token", out var token) || string.IsNullOrWhiteSpace(token))
+            {
+                Console.WriteLine("Token no proporcionado.");
+                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token requerido.");
+                return;
+            }
+
+            var userId = await GetUserFromTokenAsync(token);
+            if (userId == null)
+            {
+                Console.WriteLine("Token inválido.");
+                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token inválido.");
+                return;
+            }
+
+            if (!data.TryGetValue("codigo", out var gameCode) || string.IsNullOrWhiteSpace(gameCode))
+            {
+                Console.WriteLine("Código de partida vacío.");
+                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Código de partida necesario.");
+                return;
+            }
+
+            var partida = await _context.Partidas.FirstOrDefaultAsync(p => p.Codigo == gameCode);
+            if (partida == null)
+            {
+                Console.WriteLine("Partida no encontrada.");
+                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Partida no encontrada.");
+                return;
+            }
+
+            if (partida.Jugador1Id != null && partida.Jugador2Id != null)
+            {
+                Console.WriteLine("La partida ya está completa.");
+                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "La partida ya tiene dos jugadores.");
+                return;
+            }
+
+            if (partida.Jugador1Id == null)
+            {
+                partida.Jugador1Id = userId.Value;
+            }
+            else
+            {
+                partida.Jugador2Id = userId.Value;
+            }
+
+            var partidaJugador = new Partida_Jugador
+            {
+                PartidaId = partida.Id,
+                UsuarioId = userId.Value
+            };
+
+            var nameUsuario = await _context.Usuarios.FindAsync(userId.Value);
+            await _context.SaveChangesAsync();
+
+            Console.WriteLine($"Unido a la partida con código: {gameCode}");
+
+            await SendJsonAsync(writer, "JOIN_GAME_SUCCESS", "Unido a la partida", new Dictionary<string, string> { { "codigo", gameCode }, { "usuario", nameUsuario.Nombre } });
+        }
+
+
+        private async Task<int?> GetUserFromTokenAsync(string token)
+        {
+            var usuario = await _context.Sesiones_Usuarios.FirstOrDefaultAsync(u => u.Token == token);
+            return usuario.UsuarioId;
         }
 
         //private async Task HandleValidateToken(Dictionary<string, string> data, StreamWriter writer)
@@ -238,11 +312,12 @@ namespace Chasser.Logic.Network
                     {
                         waitingClients.Enqueue(client);
                         Console.WriteLine("Jugador añadido a la cola. Esperando oponente...");
+                        var nameUsuario = await _context.Usuarios.FindAsync(user.Id);
                         await SendJsonAsync(
                             writer,
                             "START_GAME_SUCCESS",
                             "Esperando a otro jugador",
-                            new Dictionary<string, string> { { "codigo", gameCod } }
+                            new Dictionary<string, string> { { "codigo", gameCod }, { "usuario", nameUsuario.Nombre } }
                         );
                     }
                     else

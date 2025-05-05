@@ -6,7 +6,6 @@ using Chasser.Logic.Network;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Chasser.Common.Data;
-using Chasser.Server;
 
 namespace Chasser
 {

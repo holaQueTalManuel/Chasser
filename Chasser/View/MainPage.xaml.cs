@@ -15,7 +15,9 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Azure.Core;
 using Chasser.Common.Network;
+using Chasser.Logic;
 using Chasser.Logic.Network;
+using Chasser.View;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Chasser
@@ -37,7 +39,7 @@ namespace Chasser
 
         public void SetAuthToken(string token)
         {
-            _authToken = token;
+            //_authToken = Auth;
 
             // Guardar el token en una variable auxiliar o en otra propiedad que permita escritura.
             Properties.Settings.Default["SessionToken"] = token; // Usar el índice para asignar valores.
@@ -50,7 +52,7 @@ namespace Chasser
                 Command = "START_GAME",
                 Data = new Dictionary<string, string>
                 {
-                    { "token", _authToken } // ¡Envía el token aquí!
+                    { "token", AuthHelper.GetToken() } // ¡Envía el token aquí!
                 }
             };
 
@@ -92,8 +94,14 @@ namespace Chasser
         }
         private async void JoinGame_Click(object sender, RoutedEventArgs e)
         {
-
+            EnterGameCod enterGameWindow = new EnterGameCod
+            {
+                Owner = Window.GetWindow(this)
+            };
+            enterGameWindow.ShowDialog();
         }
+
+        
 
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {

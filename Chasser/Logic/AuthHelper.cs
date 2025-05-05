@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Chasser.Common.Network;
 using Chasser.Logic.Network;
 
-namespace Chasser.Server
+namespace Chasser.Logic
 {
     public static class AuthHelper
     {
@@ -22,7 +22,7 @@ namespace Chasser.Server
         {
             _authToken = token;
             // Opcional: Guardar en archivo/configuración para persistencia
-            File.WriteAllText(path, token);
+            //File.WriteAllText(path, token);
         }
 
         public static async Task<bool> IsUserAuthenticatedAsync()

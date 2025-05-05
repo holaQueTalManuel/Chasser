@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Chasser.Logic.Network;
 using Chasser.Common.Network;
+using Chasser.Logic;
 
 namespace Chasser
 {
