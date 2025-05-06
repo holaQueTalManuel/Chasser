@@ -10,11 +10,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Chasser.Common;
 using Chasser.Common.Network;
-using Chasser.Server.Network;
 using Microsoft.EntityFrameworkCore;
 using Chasser.Common.Data;
 using Chasser.Common.Model;
-using Azure.Core;
 
 namespace Chasser.Logic.Network
 {
@@ -25,7 +23,9 @@ namespace Chasser.Logic.Network
         public event Action<string> ClientConnected;
         public event Action<string, string> MessageReceived;
         private string userPath = "user.txt";
-        private static Queue<TcpClient> waitingClients = new();
+        private static Queue<(TcpClient client, int userId, string gameCode)> waitingPlayers = new();
+        private static Dictionary<string, GameSession> activeGames = new();
+        private static Dictionary<TcpClient, string> clientToGameMap = new();
         string gameCod = "";
 
         public TCPServer(ChasserContext context)
@@ -106,18 +106,50 @@ namespace Chasser.Logic.Network
                     }
                 }
             }
-            catch (IOException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error de lectura: {ex.Message}");
-            }
-            catch (SocketException ex)
-            {
-                Console.WriteLine($"Error de socket: {ex.Message}");
+                Console.WriteLine($"Error con cliente: {ex}");
             }
             finally
             {
+                // Si estaba esperando, quitarlo de la cola
+                var waitingPlayer = waitingPlayers.FirstOrDefault(x => x.client == client);
+                if (waitingPlayer.client != null)
+                {
+                    var newQueue = new Queue<(TcpClient, int, string)>(waitingPlayers.Where(x => x.client != client));
+                    waitingPlayers = newQueue;
+                }
+
+                // Si estaba en una partida, notificar al oponente
+                if (clientToGameMap.TryGetValue(client, out var gameCode))
+                {
+                    if (activeGames.TryGetValue(gameCode, out var session))
+                    {
+                        var opponent = session.GetOpponent(client);
+                        if (opponent != null && opponent.Connected)
+                        {
+                            await NotifyOpponentDisconnection(opponent);
+                        }
+                        activeGames.Remove(gameCode);
+                    }
+                    clientToGameMap.Remove(client);
+                }
+
                 client.Dispose();
-                Console.WriteLine("Cliente desconectado.");
+            }
+        }
+
+        private async Task NotifyOpponentDisconnection(TcpClient opponent)
+        {
+            try
+            {
+                using var stream = opponent.GetStream();
+                using var writer = new StreamWriter(stream) { AutoFlush = true };
+                await SendJsonAsync(writer, "OPPONENT_DISCONNECTED", "Tu oponente se ha desconectado");
+            }
+            catch
+            {
+                // Silenciar errores de notificación
             }
         }
 
@@ -125,64 +157,157 @@ namespace Chasser.Logic.Network
         {
             Console.WriteLine("Procesando JOIN_GAME...");
 
-            if (!data.TryGetValue("token", out var token) || string.IsNullOrWhiteSpace(token))
+            try
             {
-                Console.WriteLine("Token no proporcionado.");
-                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token requerido.");
-                return;
+                // Validaciones básicas
+                if (!data.TryGetValue("token", out var token) || string.IsNullOrWhiteSpace(token))
+                {
+                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token requerido");
+                    return;
+                }
+
+                var userId = await GetUserFromTokenAsync(token);
+                if (userId == null)
+                {
+                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token inválido");
+                    return;
+                }
+
+                if (!data.TryGetValue("codigo", out var gameCode) || string.IsNullOrWhiteSpace(gameCode))
+                {
+                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Código de partida necesario");
+                    return;
+                }
+
+                // Buscar partida en la base de datos
+                var partida = await _context.Partidas.FirstOrDefaultAsync(p => p.Codigo == gameCode);
+                if (partida == null)
+                {
+                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Partida no encontrada");
+                    return;
+                }
+
+                // Verificar si la partida ya está llena
+                if (partida.Jugador1Id != null && partida.Jugador2Id != null)
+                {
+                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "La partida ya está completa");
+                    return;
+                }
+
+                // Buscar si hay un jugador esperando esta partida específica
+                var waitingPlayer = FindWaitingPlayerForGame(gameCode, userId.Value);
+
+                if (waitingPlayer == null)
+                {
+                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "No hay jugador esperando en esta partida");
+                    return;
+                }
+
+                // Actualizar base de datos
+                if (partida.Jugador1Id == null)
+                {
+                    partida.Jugador1Id = userId.Value;
+                }
+                else
+                {
+                    partida.Jugador2Id = userId.Value;
+                }
+
+                _context.Partidas_Jugadores.Add(new Partida_Jugador
+                {
+                    PartidaId = partida.Id,
+                    UsuarioId = userId.Value
+                });
+                await _context.SaveChangesAsync();
+
+                // Iniciar sesión de juego
+                await StartGameSession(waitingPlayer.Value.client, client, gameCode,
+                                     waitingPlayer.Value.userId, userId.Value, writer);
             }
-
-            var userId = await GetUserFromTokenAsync(token);
-            if (userId == null)
+            catch (Exception ex)
             {
-                Console.WriteLine("Token inválido.");
-                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token inválido.");
-                return;
+                Console.WriteLine($"Error en JoinGame: {ex}");
+                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Error interno del servidor");
             }
+        }
 
-            if (!data.TryGetValue("codigo", out var gameCode) || string.IsNullOrWhiteSpace(gameCode))
+
+        private (TcpClient client, int userId)? FindWaitingPlayerForGame(string gameCode, int currentUserId)
+        {
+            // Hacer una copia de la cola actual para iterar
+            var tempQueue = new Queue<(TcpClient client, int userId, string gameCode)>(waitingPlayers);
+
+            while (tempQueue.Count > 0)
             {
-                Console.WriteLine("Código de partida vacío.");
-                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Código de partida necesario.");
-                return;
+                var item = tempQueue.Dequeue();
+
+                // Verificar si cumple las condiciones
+                if (item.gameCode == gameCode &&
+                    item.userId != currentUserId &&
+                    item.client.Connected)
+                {
+                    // Crear nueva cola sin este jugador
+                    waitingPlayers = new Queue<(TcpClient, int, string)>(
+                        waitingPlayers.Where(x => x.client != item.client ||
+                                                x.userId != item.userId ||
+                                                x.gameCode != item.gameCode));
+
+                    return (item.client, item.userId);
+                }
             }
+            return null;
+        }
 
-            var partida = await _context.Partidas.FirstOrDefaultAsync(p => p.Codigo == gameCode);
-            if (partida == null)
+
+        private async Task StartGameSession(TcpClient player1, TcpClient player2, string gameCode,
+                                  int player1Id, int player2Id, StreamWriter initiatorWriter)
+        {
+            try
             {
-                Console.WriteLine("Partida no encontrada.");
-                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Partida no encontrada.");
-                return;
+                // Crear la sesión de juego
+                var gameSession = new GameSession(player1, player2, gameCode, player1Id, player2Id);
+
+                // Registrar en las estructuras de control
+                activeGames.Add(gameCode, gameSession);
+                clientToGameMap.Add(player1, gameCode);
+                clientToGameMap.Add(player2, gameCode);
+
+                // Obtener nombres de los jugadores
+                var player1Name = (await _context.Usuarios.FindAsync(player1Id))?.Nombre;
+                var player2Name = (await _context.Usuarios.FindAsync(player2Id))?.Nombre;
+
+                // Notificar al jugador 1 (creador)
+                await SendJsonAsync(initiatorWriter, "GAME_STARTED", "Partida iniciada",
+                    new Dictionary<string, string> {
+                { "codigo", gameCode },
+                { "oponente", player2Name },
+                { "color", "blanco" }
+                    });
+
+                // Notificar al jugador 2 (que se unió)
+                using var player2Stream = player2.GetStream();
+                using var player2Writer = new StreamWriter(player2Stream) { AutoFlush = true };
+
+                await SendJsonAsync(player2Writer, "GAME_STARTED", "Partida iniciada",
+                    new Dictionary<string, string> {
+                { "codigo", gameCode },
+                { "oponente", player1Name },
+                { "color", "negro" }
+                    });
+
+                Console.WriteLine($"Partida {gameCode} iniciada entre {player1Name} y {player2Name}");
             }
-
-            if (partida.Jugador1Id != null && partida.Jugador2Id != null)
+            catch (Exception ex)
             {
-                Console.WriteLine("La partida ya está completa.");
-                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "La partida ya tiene dos jugadores.");
-                return;
+                Console.WriteLine($"Error al iniciar sesión: {ex}");
+
+                // Limpiar en caso de error
+                activeGames.Remove(gameCode);
+                clientToGameMap.Remove(player1);
+                clientToGameMap.Remove(player2);
+
+                throw;
             }
-
-            if (partida.Jugador1Id == null)
-            {
-                partida.Jugador1Id = userId.Value;
-            }
-            else
-            {
-                partida.Jugador2Id = userId.Value;
-            }
-
-            var partidaJugador = new Partida_Jugador
-            {
-                PartidaId = partida.Id,
-                UsuarioId = userId.Value
-            };
-
-            var nameUsuario = await _context.Usuarios.FindAsync(userId.Value);
-            await _context.SaveChangesAsync();
-
-            Console.WriteLine($"Unido a la partida con código: {gameCode}");
-
-            await SendJsonAsync(writer, "JOIN_GAME_SUCCESS", "Unido a la partida", new Dictionary<string, string> { { "codigo", gameCode }, { "usuario", nameUsuario.Nombre } });
         }
 
 
@@ -266,81 +391,105 @@ namespace Chasser.Logic.Network
 
             try
             {
-                // Validar el token recibido
+                // Validación del token
                 if (!data.ContainsKey("token"))
                 {
-                    Console.WriteLine("Falta el token.");
                     await SendJsonAsync(writer, "START_GAME_FAIL", "Token necesario");
                     return;
                 }
 
                 string token = data["token"];
-
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    Console.WriteLine("Token vacío.");
-                    await SendJsonAsync(writer, "START_GAME_FAIL", "Token vacío");
-                    return;
-                }
-
-                // Llamar al método ValidateToken para comprobar el token
                 Usuario user = await ValidateToken(token);
 
-                // Si el token no es válido o ha expirado, se termina la operación
                 if (user == null)
                 {
                     await SendJsonAsync(writer, "START_GAME_FAIL", "Token inválido o expirado");
                     return;
                 }
 
-                // Continuar con la lógica para iniciar el juego
-                Console.WriteLine($"Usuario validado: {user.Nombre}");
+                // Generar código único para la partida
+                string gameCode = GenerateCod();
 
-                bool success = await CreateGame(writer, user.Id);
-
-                if (success)
+                // Verificar unicidad del código
+                if (_context.Partidas.Any(p => p.Codigo == gameCode))
                 {
-                    Console.WriteLine("Partida creada. Gestionando emparejamiento...");
+                    await SendJsonAsync(writer, "START_GAME_FAIL", "Código duplicado, intenta nuevamente");
+                    return;
+                }
 
-                    while (waitingClients.Count > 0 && !waitingClients.Peek().Connected)
-                    {
-                        waitingClients.Dequeue();
-                        Console.WriteLine("Cliente desconectado eliminado de la cola.");
-                    }
+                // Crear registro en la base de datos
+                var newGame = new Partida
+                {
+                    Codigo = gameCode,
+                    Jugador1Id = user.Id,
+                    Fecha_Creacion = DateTime.UtcNow,
+                    Duracion = TimeSpan.Zero,
+                    Ganador = ""
+                };
 
-                    if (waitingClients.Count < 1)
-                    {
-                        waitingClients.Enqueue(client);
-                        Console.WriteLine("Jugador añadido a la cola. Esperando oponente...");
-                        var nameUsuario = await _context.Usuarios.FindAsync(user.Id);
-                        await SendJsonAsync(
-                            writer,
-                            "START_GAME_SUCCESS",
-                            "Esperando a otro jugador",
-                            new Dictionary<string, string> { { "codigo", gameCod }, { "usuario", nameUsuario.Nombre } }
-                        );
-                    }
-                    else
-                    {
-                        TcpClient opponent = waitingClients.Dequeue();
-                        Console.WriteLine("Segundo jugador encontrado. Iniciando sesión de juego.");
-                        new GameSession(client, opponent);
+                _context.Partidas.Add(newGame);
+                await _context.SaveChangesAsync();
 
-                    }
+                // Registrar también en Partida_Jugador
+                _context.Partidas_Jugadores.Add(new Partida_Jugador
+                {
+                    PartidaId = newGame.Id,
+                    UsuarioId = user.Id
+                });
+                await _context.SaveChangesAsync();
+
+                // Buscar oponente
+                var opponent = FindOpponent(client, user.Id, gameCode);
+
+                if (opponent == null)
+                {
+                    // No hay oponente disponible, poner en cola de espera
+                    waitingPlayers.Enqueue((client, user.Id, gameCode));
+                    await SendJsonAsync(writer, "START_GAME_WAITING", "Esperando oponente...",
+                        new Dictionary<string, string> { { "codigo", gameCode } });
                 }
                 else
                 {
-                    Console.WriteLine("No se pudo crear la partida.");
-                    await SendJsonAsync(writer, "START_GAME_FAIL", "No se ha podido crear la partida");
+                    // Oponente encontrado, iniciar partida
+                    await StartGameSession(client, opponent.Value.client, gameCode, user.Id, opponent.Value.userId, writer);
                 }
             }
             catch (Exception ex)
             {
-                string fullError = ex.ToString();
-                Console.WriteLine($"Error en GenerateGame:\n{fullError}");
-                await SendJsonAsync(writer, "START_GAME_FAIL", $"Error interno en el servidor: {fullError}");
+                Console.WriteLine($"Error en GenerateGame: {ex}");
+                await SendJsonAsync(writer, "START_GAME_FAIL", "Error interno del servidor");
             }
         }
+
+        private (TcpClient client, int userId)? FindOpponent(TcpClient currentClient, int currentUserId, string gameCode)
+        {
+            // Limpiar clientes desconectados primero
+            CleanDisconnectedPlayers();
+
+            // Buscar oponente válido
+            foreach (var candidate in waitingPlayers.ToArray()) // Usar ToArray para evitar modificación durante enumeración
+            {
+                if (candidate.client.Connected && candidate.userId != currentUserId)
+                {
+                    // Remover el jugador encontrado de la cola
+                    waitingPlayers = new Queue<(TcpClient, int, string)>(
+                        waitingPlayers.Where(x => x.client != candidate.client ||
+                                                x.userId != candidate.userId));
+
+                    // Devolver solo los dos valores necesarios
+                    return (candidate.client, candidate.userId);
+                }
+            }
+            return null;
+        }
+
+        private void CleanDisconnectedPlayers()
+        {
+            // Crear nueva cola solo con jugadores conectados
+            var connectedPlayers = waitingPlayers.Where(x => x.client.Connected).ToList();
+            waitingPlayers = new Queue<(TcpClient, int, string)>(connectedPlayers);
+        }
+
 
 
 

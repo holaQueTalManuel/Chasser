@@ -215,7 +215,7 @@ namespace Chasser
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        gameState.MakeMove(move);
+                        gameState.ExecuteMove(move);
                         DrawBoard(gameState.Board);
                     });
                 }
@@ -230,7 +230,7 @@ namespace Chasser
 
         private void onFromPositionSelected(Position pos)
         {
-            IEnumerable<Move> moves = gameState.LegalMovesForPiece(pos);
+            IEnumerable<Move> moves = gameState.GetLegalMoves(pos);
 
             if (moves.Any())
             {
