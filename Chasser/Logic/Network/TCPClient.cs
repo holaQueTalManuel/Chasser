@@ -13,64 +13,105 @@ namespace Chasser.Logic.Network
         private static NetworkStream _stream;
         private static StreamReader _reader;
         private static StreamWriter _writer;
-
-        // Conexión inicial (llamar al iniciar la aplicación)
-        public static async Task ConnectAsync(string ip, int port)
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
-            _client = new TcpClient();
-            await _client.ConnectAsync(ip, port);
-            _stream = _client.GetStream();
-            _reader = new StreamReader(_stream);
-            _writer = new StreamWriter(_stream) { AutoFlush = true };
-        }
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = false
+        };
 
-        // Envía mensajes y espera respuesta (genérico)
-        public static async Task<string> SendMessageAsync(string message)
+        public static bool IsConnected => _client?.Connected == true;
+
+        public static async Task ConnectAsync(string ip, int port, int timeout = 5000)
         {
-            if (_client == null || !_client.Connected)
-                throw new InvalidOperationException("Cliente no conectado");
-
             try
             {
-                await _writer.WriteLineAsync(message);
-                return await _reader.ReadLineAsync();
+                _client = new TcpClient();
+                var connectTask = _client.ConnectAsync(ip, port);
+
+                // Añadir timeout
+                if (await Task.WhenAny(connectTask, Task.Delay(timeout)) != connectTask)
+                {
+                    throw new TimeoutException("Tiempo de conexión excedido");
+                }
+
+                _stream = _client.GetStream();
+                _reader = new StreamReader(_stream);
+                _writer = new StreamWriter(_stream) { AutoFlush = true };
             }
             catch (Exception ex)
             {
                 Disconnect();
-                throw new Exception("Error al enviar mensaje", ex);
+                throw new Exception($"Error al conectar con {ip}:{port}", ex);
+            }
+        }
+
+        public static async Task<ResponseMessage> SendMessageAsync(RequestMessage message)
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Cliente no conectado al servidor");
+
+            try
+            {
+                string json = JsonSerializer.Serialize(message, _jsonOptions);
+                await _writer.WriteLineAsync(json);
+
+                string responseJson = await _reader.ReadLineAsync();
+                if (string.IsNullOrEmpty(responseJson))
+                {
+                    throw new Exception("El servidor cerró la conexión");
+                }
+
+                return JsonSerializer.Deserialize<ResponseMessage>(responseJson, _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                Disconnect();
+                throw new Exception("Error en la comunicación con el servidor", ex);
+            }
+        }
+
+        public static async Task<ResponseMessage> ReceiveMessageAsync()
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Cliente no conectado al servidor");
+
+            try
+            {
+                string responseJson = await _reader.ReadLineAsync();
+                if (string.IsNullOrEmpty(responseJson))
+                {
+                    throw new Exception("El servidor cerró la conexión");
+                }
+
+                return JsonSerializer.Deserialize<ResponseMessage>(responseJson, _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                Disconnect();
+                throw new Exception("Error al recibir mensaje del servidor", ex);
             }
         }
 
         public static void Disconnect()
         {
-            _reader?.Dispose();
-            _writer?.Dispose();
-            _stream?.Dispose();
-            _client?.Dispose();
-        }
-
-        public class ServerResponse
-        {
-            public string Status { get; set; }
-            public string Reason { get; set; }
-        }
-
-        public static async Task<ResponseMessage> SendJsonAsync(RequestMessage message)
-        {
-            string json = JsonSerializer.Serialize(message);
-            await _writer.WriteLineAsync(json);
-
-            string response = await _reader.ReadLineAsync();
-
-            if (string.IsNullOrWhiteSpace(response))
+            try
             {
-                throw new Exception("No se recibió respuesta del servidor.");
+                _writer?.Dispose();
+                _reader?.Dispose();
+                _stream?.Dispose();
+                _client?.Dispose();
             }
-
-            return JsonSerializer.Deserialize<ResponseMessage>(response);
+            catch
+            {
+                // Silenciar errores de disposición
+            }
+            finally
+            {
+                _writer = null;
+                _reader = null;
+                _stream = null;
+                _client = null;
+            }
         }
-
-
     }
 }

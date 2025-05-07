@@ -54,7 +54,7 @@ namespace Chasser
 
                 try
                 {
-                    var response = await TCPClient.SendJsonAsync(request);
+                    var response = await TCPClient.SendMessageAsync(request);
 
                     if (response.Status == "LOGIN_SUCCESS")
                     {

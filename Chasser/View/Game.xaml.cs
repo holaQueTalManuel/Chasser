@@ -22,6 +22,7 @@ using Chasser.Utilities;
 using Chasser.View;
 using Chasser.Common.Model;
 using Chasser.Common.Data;
+using Chasser.Logic.Network;
 
 namespace Chasser
 {
@@ -30,36 +31,120 @@ namespace Chasser
     /// </summary>
     public partial class Game : Page
     {
-        private string userPath = "user.txt";
-        private string gameCod = "";
-        private StreamWriter writer;
-        private StreamReader reader;
+        private string gameCod;
         private GameState gameState;
         private readonly Image[,] pieceImages = new Image[7, 7];
         private readonly Rectangle[,] highlights = new Rectangle[7, 7];
-        private readonly Dictionary<Position, Move> moveCache =
-            new Dictionary<Position, Move>();
-
+        private readonly Dictionary<Position, Move> moveCache = new Dictionary<Position, Move>();
         private Position selectedPos = null;
+        private string playerColor;
+        private bool isMyTurn = false;
 
-        private readonly ChasserContext _context;
-        public Game(string cod)
+        public Game(string cod, string token, string assignedColor)
         {
             InitializeComponent();
-
             this.gameCod = cod;
-            // Cuando recibas el código del servidor
             gameCodeBlock.Text = $"Código de partida: {gameCod}";
 
-            //LeerUsuarios();
+            playerColor = assignedColor; // Nuevo parámetro
+            isMyTurn = playerColor == "white";
+
             InitializeBoard();
             gameState = new GameState(Player.White, Board.Initialize());
             DrawBoard(gameState.Board);
+            UpdateTurnIndicator();
 
-            //CONTROLAR QUE HAYA 2 JUGADORES EN LA PARTIDA, VER PORQUE LOS READERS WRITERS SON NULOS Y MIENTRAS QUE NO HAYA 2,
-            //NO SE PUEDA JUGAR, BLOQUEANDO LOS MOVIEMIENTOS O ALGO
+            _ = ListenForServerMessagesAsync();
+        }
 
-            //_ = ListenForOpponentAsync(); // Aquí lanzas la escucha en segundo plano
+        private async Task InitializeGameAsync(string token)
+        {
+            try
+            {
+                var joinRequest = new RequestMessage
+                {
+                    Command = "JOIN_GAME",
+                    Data = new Dictionary<string, string>
+                    {
+                        { "token", token },
+                        { "codigo", gameCod }
+                    }
+                };
+
+                await TCPClient.SendMessageAsync(joinRequest);
+                var joinResponse = await TCPClient.ReceiveMessageAsync();
+
+                if (joinResponse.Status == "JOIN_GAME_SUCCESS")
+                {
+                    playerColor = joinResponse.Data["color"];
+                    isMyTurn = playerColor == "white";
+                    UpdateTurnIndicator();
+                    _ = ListenForServerMessagesAsync();
+                }
+                else
+                {
+                    MessageBox.Show(joinResponse.Message);
+                    NavigationService.GoBack();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al unirse a la partida: {ex.Message}");
+                NavigationService.GoBack();
+            }
+        }
+
+        private async Task ListenForServerMessagesAsync()
+        {
+            try
+            {
+                while (TCPClient.IsConnected)
+                {
+                    var response = await TCPClient.ReceiveMessageAsync();
+                    Application.Current.Dispatcher.Invoke(() => ProcessServerMessage(response));
+                }
+            }
+            catch (Exception ex)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show($"Se perdió la conexión: {ex.Message}");
+                    NavigationService.GoBack();
+                });
+            }
+        }
+
+        private void ProcessServerMessage(ResponseMessage response)
+        {
+            switch (response.Status)
+            {
+                case "OPPONENT_MOVE":
+                    var move = new NormalMove(
+                        new Position(int.Parse(response.Data["fromRow"]),
+                        int.Parse(response.Data["fromCol"])),
+                        new Position(int.Parse(response.Data["toRow"]),
+                        int.Parse(response.Data["toCol"]))
+                    );
+                    gameState.ExecuteMove(move);
+                    DrawBoard(gameState.Board);
+                    isMyTurn = true;
+                    UpdateTurnIndicator();
+                    break;
+
+                case "GAME_OVER":
+                    MessageBox.Show($"Juego terminado! {response.Message}");
+                    if (response.Data["winner"] == playerColor)
+                    {
+                        // Lógica adicional para victoria
+                    }
+                    NavigationService.GoBack();
+                    break;
+
+                case "OPPONENT_DISCONNECTED":
+                    MessageBox.Show("El oponente se ha desconectado");
+                    NavigationService.GoBack();
+                    break;
+            }
         }
 
         private void InitializeBoard()
@@ -94,6 +179,12 @@ namespace Chasser
             }
         }
 
+        private void UpdateTurnIndicator()
+        {
+            turnBlock.Text = isMyTurn ? "Tu turno" : "Turno del oponente";
+            turnBlock.Foreground = isMyTurn ? Brushes.Green : Brushes.Red;
+        }
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             //infoUser.Visibility = Visibility.Visible;
@@ -111,24 +202,24 @@ namespace Chasser
             rulesWindow.ShowDialog(); 
         }
 
-        private void LeerUsuarios()
-        {
-            string savedUser = File.ReadAllText(userPath);
+        //private void LeerUsuarios()
+        //{
+        //    string savedUser = File.ReadAllText(userPath);
 
-            // Realiza una consulta personalizada usando LINQ
-            var user = _context.Usuarios.FirstOrDefault(u => u.Nombre == savedUser);
+        //    // Realiza una consulta personalizada usando LINQ
+        //    var user = _context.Usuarios.FirstOrDefault(u => u.Nombre == savedUser);
 
-            if (user != null)
-            {
-                nameBlock.Text = user.Nombre;
-                gamesBlock.Text = user.Partidas_Ganadas?.ToString() ?? "0";
-            }
-            else
-            {
-                nameBlock.Text = "No se encontró usuario";
-                gamesBlock.Text = "0";
-            }
-        }
+        //    if (user != null)
+        //    {
+        //        nameBlock.Text = user.Nombre;
+        //        gamesBlock.Text = user.Partidas_Ganadas?.ToString() ?? "0";
+        //    }
+        //    else
+        //    {
+        //        nameBlock.Text = "No se encontró usuario";
+        //        gamesBlock.Text = "0";
+        //    }
+        //}
 
         private void LogOut_Click(object sender, RoutedEventArgs e)
         {
@@ -170,7 +261,6 @@ namespace Chasser
 
         private async void HandleMove(Move move)
         {
-            // Crear mensaje en formato JSON
             var request = new RequestMessage
             {
                 Command = "GAME_ACTION",
@@ -182,50 +272,48 @@ namespace Chasser
                     { "toRow", move.ToPos.Row.ToString() },
                     { "toCol", move.ToPos.Column.ToString() }
                 }
-                    };
+            };
 
-            // Enviar el mensaje al servidor
-            string json = JsonSerializer.Serialize(request);
-            await writer.WriteLineAsync(json); 
-
-            // Aquí podrías esperar la respuesta del servidor si lo deseas
-            string responseLine = await reader.ReadLineAsync();
-            var response = JsonSerializer.Deserialize<ResponseMessage>(responseLine);
-
-            if (response.Status == "ERROR")
+            try
             {
-                MessageBox.Show("Movimiento inválido: " + response.Message);
+                await TCPClient.SendMessageAsync(request);
+                isMyTurn = false;
+                UpdateTurnIndicator();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al enviar movimiento: {ex.Message}");
             }
         }
 
-        private async Task ListenForOpponentAsync()
-        {
-            while (true)
-            {
-                string line = await reader.ReadLineAsync();
-                if (line == null) break;
+        //private async Task ListenForOpponentAsync()
+        //{
+        //    while (true)
+        //    {
+        //        string line = await reader.ReadLineAsync();
+        //        if (line == null) break;
 
-                var message = JsonSerializer.Deserialize<RequestMessage>(line);
-                if (message.Command == "GAME_ACTION" && message.Data["type"] == "MOVE")
-                {
-                    var move = new NormalMove(
-                        new Position(int.Parse(message.Data["fromRow"]), int.Parse(message.Data["fromCol"])),
-                        new Position(int.Parse(message.Data["toRow"]), int.Parse(message.Data["toCol"]))
-                    );
+        //        var message = JsonSerializer.Deserialize<RequestMessage>(line);
+        //        if (message.Command == "GAME_ACTION" && message.Data["type"] == "MOVE")
+        //        {
+        //            var move = new NormalMove(
+        //                new Position(int.Parse(message.Data["fromRow"]), int.Parse(message.Data["fromCol"])),
+        //                new Position(int.Parse(message.Data["toRow"]), int.Parse(message.Data["toCol"]))
+        //            );
 
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        gameState.ExecuteMove(move);
-                        DrawBoard(gameState.Board);
-                    });
-                }
-                else if (message.Command == "GAME_OVER")
-                {
-                    MessageBox.Show("¡Fin del juego!");
-                    Application.Current.Shutdown();
-                }
-            }
-        }
+        //            Application.Current.Dispatcher.Invoke(() =>
+        //            {
+        //                gameState.ExecuteMove(move);
+        //                DrawBoard(gameState.Board);
+        //            });
+        //        }
+        //        else if (message.Command == "GAME_OVER")
+        //        {
+        //            MessageBox.Show("¡Fin del juego!");
+        //            Application.Current.Shutdown();
+        //        }
+        //    }
+        //}
 
 
         private void onFromPositionSelected(Position pos)
@@ -278,17 +366,23 @@ namespace Chasser
 
         private void boardGrid_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (!isMyTurn) return;
+
             Point point = e.GetPosition(pieceGrid);
             Position pos = ToSquarePosition(point);
 
             if (selectedPos == null)
             {
-                onFromPositionSelected(pos);
+                if (gameState.Board[pos]?.Color.ToString().ToLower() == playerColor)
+                {
+                    onFromPositionSelected(pos);
+                }
             }
             else
             {
                 onToPositionSelected(pos);
             }
         }
+
     }
 }

@@ -159,13 +159,14 @@ namespace Chasser.Logic.Network
 
             try
             {
-                // Validaciones básicas
+                // 1. Validar token
                 if (!data.TryGetValue("token", out var token) || string.IsNullOrWhiteSpace(token))
                 {
                     await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token requerido");
                     return;
                 }
 
+                // 2. Obtener usuario desde token
                 var userId = await GetUserFromTokenAsync(token);
                 if (userId == null)
                 {
@@ -173,13 +174,14 @@ namespace Chasser.Logic.Network
                     return;
                 }
 
+                // 3. Validar código de partida
                 if (!data.TryGetValue("codigo", out var gameCode) || string.IsNullOrWhiteSpace(gameCode))
                 {
                     await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Código de partida necesario");
                     return;
                 }
 
-                // Buscar partida en la base de datos
+                // 4. Buscar partida en base de datos
                 var partida = await _context.Partidas.FirstOrDefaultAsync(p => p.Codigo == gameCode);
                 if (partida == null)
                 {
@@ -187,23 +189,22 @@ namespace Chasser.Logic.Network
                     return;
                 }
 
-                // Verificar si la partida ya está llena
+                // 5. Verificar si la partida está llena
                 if (partida.Jugador1Id != null && partida.Jugador2Id != null)
                 {
                     await SendJsonAsync(writer, "JOIN_GAME_FAIL", "La partida ya está completa");
                     return;
                 }
 
-                // Buscar si hay un jugador esperando esta partida específica
+                // 6. Buscar jugador esperando en esta partida
                 var waitingPlayer = FindWaitingPlayerForGame(gameCode, userId.Value);
-
                 if (waitingPlayer == null)
                 {
                     await SendJsonAsync(writer, "JOIN_GAME_FAIL", "No hay jugador esperando en esta partida");
                     return;
                 }
 
-                // Actualizar base de datos
+                // 7. Actualizar base de datos
                 if (partida.Jugador1Id == null)
                 {
                     partida.Jugador1Id = userId.Value;
@@ -220,9 +221,47 @@ namespace Chasser.Logic.Network
                 });
                 await _context.SaveChangesAsync();
 
-                // Iniciar sesión de juego
-                await StartGameSession(waitingPlayer.Value.client, client, gameCode,
-                                     waitingPlayer.Value.userId, userId.Value, writer);
+                // 8. Obtener nombres de jugadores
+                var player1Name = (await _context.Usuarios.FindAsync(waitingPlayer.Value.userId))?.Nombre;
+                var player2Name = (await _context.Usuarios.FindAsync(userId.Value))?.Nombre;
+
+                // 9. Asignar colores
+                const string player1Color = "white";
+                const string player2Color = "black";
+
+                // 10. Notificar al jugador que se unió (Jugador 2 - Negro)
+                await SendJsonAsync(writer, "JOIN_GAME_SUCCESS", "Unido a la partida",
+                    new Dictionary<string, string> {
+                { "codigo", gameCode },
+                { "color", player2Color },
+                { "oponente", player1Name },
+                { "jugadorId", userId.Value.ToString() }
+                    });
+
+                // 11. Notificar al jugador que esperaba (Jugador 1 - Blanco)
+                var opponentWriter = new StreamWriter(waitingPlayer.Value.client.GetStream()) { AutoFlush = true };
+                await SendJsonAsync(opponentWriter, "GAME_STARTED", "Partida iniciada",
+                    new Dictionary<string, string> {
+                { "codigo", gameCode },
+                { "color", player1Color },
+                { "oponente", player2Name },
+                { "jugadorId", waitingPlayer.Value.userId.ToString() }
+                    });
+
+                // 12. Crear sesión de juego
+                var gameSession = new GameSession(
+                    waitingPlayer.Value.client, // Jugador 1 (Blanco)
+                    client,                     // Jugador 2 (Negro)
+                    gameCode,
+                    waitingPlayer.Value.userId, // ID Jugador 1
+                    userId.Value);              // ID Jugador 2
+
+                // 13. Registrar en estructuras de control
+                activeGames.Add(gameCode, gameSession);
+                clientToGameMap.Add(client, gameCode);
+                clientToGameMap.Add(waitingPlayer.Value.client, gameCode);
+
+                Console.WriteLine($"Partida {gameCode} iniciada entre {player1Name} (blanco) y {player2Name} (negro)");
             }
             catch (Exception ex)
             {
@@ -446,7 +485,7 @@ namespace Chasser.Logic.Network
                     // No hay oponente disponible, poner en cola de espera
                     waitingPlayers.Enqueue((client, user.Id, gameCode));
                     await SendJsonAsync(writer, "START_GAME_WAITING", "Esperando oponente...",
-                        new Dictionary<string, string> { { "codigo", gameCode } });
+                        new Dictionary<string, string> { { "codigo", gameCode }, { "color", "blanco" } });
                 }
                 else
                 {
@@ -463,22 +502,23 @@ namespace Chasser.Logic.Network
 
         private (TcpClient client, int userId)? FindOpponent(TcpClient currentClient, int currentUserId, string gameCode)
         {
-            // Limpiar clientes desconectados primero
-            CleanDisconnectedPlayers();
-
-            // Buscar oponente válido
-            foreach (var candidate in waitingPlayers.ToArray()) // Usar ToArray para evitar modificación durante enumeración
+            // Versión optimizada que resuelve ambos problemas:
+            while (waitingPlayers.TryPeek(out var candidate))
             {
-                if (candidate.client.Connected && candidate.userId != currentUserId)
+                // Limpiar desconectados primero
+                if (!candidate.client.Connected)
                 {
-                    // Remover el jugador encontrado de la cola
-                    waitingPlayers = new Queue<(TcpClient, int, string)>(
-                        waitingPlayers.Where(x => x.client != candidate.client ||
-                                                x.userId != candidate.userId));
-
-                    // Devolver solo los dos valores necesarios
-                    return (candidate.client, candidate.userId);
+                    waitingPlayers.Dequeue();
+                    continue;
                 }
+
+                // Validar oponente adecuado
+                if (candidate.userId != currentUserId && candidate.gameCode == gameCode)
+                {
+                    var opponent = waitingPlayers.Dequeue();
+                    return (opponent.client, opponent.userId); // Conversión explícita
+                }
+                break;
             }
             return null;
         }

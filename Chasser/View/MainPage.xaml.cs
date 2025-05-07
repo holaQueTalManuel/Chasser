@@ -47,18 +47,25 @@ namespace Chasser
         }
         private async void StartGame_Click(object sender, RoutedEventArgs e)
         {
+            var token = AuthHelper.GetToken(); // Obtener el token primero
+            if (string.IsNullOrEmpty(token))
+            {
+                MessageBox.Show("No se encontró el token de autenticación");
+                return;
+            }
+
             var request = new RequestMessage
             {
                 Command = "START_GAME",
                 Data = new Dictionary<string, string>
-                {
-                    { "token", AuthHelper.GetToken() } // ¡Envía el token aquí!
-                }
+        {
+            { "token", token }
+        }
             };
 
             try
             {
-                var response = await TCPClient.SendJsonAsync(request);
+                var response = await TCPClient.SendMessageAsync(request);
 
                 if (response == null)
                 {
@@ -66,12 +73,12 @@ namespace Chasser
                     return;
                 }
 
-                if (response.Status == "START_GAME_SUCCESS")
+                if (response.Status == "START_GAME_WAITING")
                 {
-                    // Cambiar el acceso a la clave "codigo" en el diccionario.
                     if (response.Data != null && response.Data.TryGetValue("codigo", out string codigo))
                     {
-                        NavigationService.Navigate(new Game(codigo));
+                        // Pasar tanto el código como el token al constructor de Game
+                        NavigationService.Navigate(new Game(codigo, token, response.Data["color"]));
                     }
                     else
                     {
@@ -80,7 +87,12 @@ namespace Chasser
                 }
                 else if (response.Status.StartsWith("START_GAME_FAIL"))
                 {
-                    MessageBox.Show($"Error al unirse a la partida: {response.Message}");
+                    MessageBox.Show($"Error al crear la partida: {response.Message}");
+                }
+                else if (response.Status == "GAME_STARTED" && response.Data.TryGetValue("codigo", out string codigo))
+                {
+                    NavigationService.Navigate(new Game(codigo, token, response.Data["color"]));
+
                 }
                 else
                 {
@@ -89,12 +101,12 @@ namespace Chasser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al unirse a la partida: {ex.Message}");
+                MessageBox.Show($"Error al crear la partida: {ex.Message}");
             }
         }
         private async void JoinGame_Click(object sender, RoutedEventArgs e)
         {
-            EnterGameCod enterGameWindow = new EnterGameCod
+            EnterGameCod enterGameWindow = new EnterGameCod(_authToken)
             {
                 Owner = Window.GetWindow(this)
             };
@@ -114,7 +126,7 @@ namespace Chasser
                     Data = new Dictionary<string, string> { { "token", _authToken } }
                 };
 
-                var response = await TCPClient.SendJsonAsync(request); // No esperamos respuesta crítica
+                var response = await TCPClient.SendMessageAsync(request); // No esperamos respuesta crítica
                 if (response.Status == "LOGOUT_SUCCESS")
                 {
                     _authToken = null; // Limpiar el token

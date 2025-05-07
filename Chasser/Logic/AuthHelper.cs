@@ -48,7 +48,7 @@ namespace Chasser.Logic
                     Data = new Dictionary<string, string> { { "token", _authToken } }
                 };
 
-                var response = await TCPClient.SendJsonAsync(request);
+                var response = await TCPClient.SendMessageAsync(request);
                 return response.Status == "TOKEN_VALID";
             }
             catch
