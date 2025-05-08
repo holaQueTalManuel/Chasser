@@ -57,7 +57,7 @@ namespace Chasser.Logic.Network
                 using var reader = new StreamReader(stream);
                 using var writer = new StreamWriter(stream) { AutoFlush = true };
 
-                while (client.Connected)
+                while (client.Connected && stream.CanRead)
                 {
                     string message = await reader.ReadLineAsync();
                     if (message == null)
@@ -81,6 +81,13 @@ namespace Chasser.Logic.Network
                     }
 
                     Console.WriteLine($"Comando recibido: {msg.Command}");
+
+
+                    if (clientToGameMap.ContainsKey(client))
+                    {
+                        Console.WriteLine("Cliente asignado a una partida. Terminando lectura en HandleClientAsync.");
+                        return; // GameSession se encargará de leer sus mensajes
+                    }
 
                     switch (msg.Command)
                     {
@@ -262,6 +269,9 @@ namespace Chasser.Logic.Network
                 clientToGameMap.Add(waitingPlayer.Value.client, gameCode);
 
                 Console.WriteLine($"Partida {gameCode} iniciada entre {player1Name} (blanco) y {player2Name} (negro)");
+
+                _ = gameSession.RunSessionAsync(); // NO esperes la tarea, solo la lanzas
+                return;
             }
             catch (Exception ex)
             {
@@ -320,7 +330,7 @@ namespace Chasser.Logic.Network
                     new Dictionary<string, string> {
                 { "codigo", gameCode },
                 { "oponente", player2Name },
-                { "color", "blanco" }
+                { "color", "white" }
                     });
 
                 // Notificar al jugador 2 (que se unió)
@@ -331,10 +341,11 @@ namespace Chasser.Logic.Network
                     new Dictionary<string, string> {
                 { "codigo", gameCode },
                 { "oponente", player1Name },
-                { "color", "negro" }
+                { "color", "black" }
                     });
 
                 Console.WriteLine($"Partida {gameCode} iniciada entre {player1Name} y {player2Name}");
+                _ = gameSession.RunSessionAsync();
             }
             catch (Exception ex)
             {
@@ -485,7 +496,7 @@ namespace Chasser.Logic.Network
                     // No hay oponente disponible, poner en cola de espera
                     waitingPlayers.Enqueue((client, user.Id, gameCode));
                     await SendJsonAsync(writer, "START_GAME_WAITING", "Esperando oponente...",
-                        new Dictionary<string, string> { { "codigo", gameCode }, { "color", "blanco" } });
+                        new Dictionary<string, string> { { "codigo", gameCode }, { "color", "white" } });
                 }
                 else
                 {

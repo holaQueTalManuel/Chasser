@@ -23,6 +23,7 @@ using Chasser.View;
 using Chasser.Common.Model;
 using Chasser.Common.Data;
 using Chasser.Logic.Network;
+using System.Diagnostics;
 
 namespace Chasser
 {
@@ -42,12 +43,14 @@ namespace Chasser
 
         public Game(string cod, string token, string assignedColor)
         {
+            Debug.WriteLine("Inicializando juego...");
             InitializeComponent();
             this.gameCod = cod;
             gameCodeBlock.Text = $"Código de partida: {gameCod}";
 
-            playerColor = assignedColor; // Nuevo parámetro
-            isMyTurn = playerColor == "white";
+            playerColor = assignedColor.ToLower().Trim();
+            isMyTurn = (playerColor == "white");
+            Debug.WriteLine($"Color asignado: {playerColor}, ¿Es mi turno? {isMyTurn}");
 
             InitializeBoard();
             gameState = new GameState(Player.White, Board.Initialize());
@@ -56,6 +59,7 @@ namespace Chasser
 
             _ = ListenForServerMessagesAsync();
         }
+
 
         private async Task InitializeGameAsync(string token)
         {
@@ -98,14 +102,17 @@ namespace Chasser
         {
             try
             {
+                Debug.WriteLine("Esperando mensajes del servidor...");
                 while (TCPClient.IsConnected)
                 {
                     var response = await TCPClient.ReceiveMessageAsync();
+                    Debug.WriteLine($"Mensaje recibido del servidor: {response.Status}");
                     Application.Current.Dispatcher.Invoke(() => ProcessServerMessage(response));
                 }
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Error al recibir mensaje del servidor: {ex.Message}");
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show($"Se perdió la conexión: {ex.Message}");
@@ -113,6 +120,7 @@ namespace Chasser
                 });
             }
         }
+
 
         private void ProcessServerMessage(ResponseMessage response)
         {
@@ -261,17 +269,18 @@ namespace Chasser
 
         private async void HandleMove(Move move)
         {
+            Debug.WriteLine($"Enviando movimiento: de {move.FromPos} a {move.ToPos}");
             var request = new RequestMessage
             {
-                Command = "GAME_ACTION",
+                Command = "GAME_ACTION_MOVE",
                 Data = new Dictionary<string, string>
-                {
-                    { "type", "MOVE" },
-                    { "fromRow", move.FromPos.Row.ToString() },
-                    { "fromCol", move.FromPos.Column.ToString() },
-                    { "toRow", move.ToPos.Row.ToString() },
-                    { "toCol", move.ToPos.Column.ToString() }
-                }
+        {
+            { "type", "MOVE" },
+            { "fromRow", move.FromPos.Row.ToString() },
+            { "fromCol", move.FromPos.Column.ToString() },
+            { "toRow", move.ToPos.Row.ToString() },
+            { "toCol", move.ToPos.Column.ToString() }
+        }
             };
 
             try
@@ -282,9 +291,11 @@ namespace Chasser
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Error al enviar movimiento: {ex.Message}");
                 MessageBox.Show($"Error al enviar movimiento: {ex.Message}");
             }
         }
+
 
         //private async Task ListenForOpponentAsync()
         //{
@@ -366,23 +377,43 @@ namespace Chasser
 
         private void boardGrid_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (!isMyTurn) return;
+            if (!isMyTurn)
+            {
+                Debug.WriteLine("Ignorando clic - No es tu turno");
+                return;
+            }
 
             Point point = e.GetPosition(pieceGrid);
             Position pos = ToSquarePosition(point);
 
             if (selectedPos == null)
             {
-                if (gameState.Board[pos]?.Color.ToString().ToLower() == playerColor)
+                // Lógica para seleccionar pieza
+                Piece piece = gameState.Board[pos.Row, pos.Column];
+                if (piece == null || piece.Color.ToString().ToLower() != playerColor)
                 {
-                    onFromPositionSelected(pos);
+                    Debug.WriteLine("Pieza no válida seleccionada");
+                    return;
                 }
+
+                // Si es una pieza válida del jugador
+                selectedPos = pos;
+                var moves = gameState.GetLegalMoves(pos);
+                CacheMoves(moves);
+                ShowHighlights();
             }
             else
             {
-                onToPositionSelected(pos);
+                // Lógica para mover pieza
+                if (moveCache.TryGetValue(pos, out Move move))
+                {
+                    HandleMove(move);
+                    selectedPos = null;
+                    HideHighlights();
+                }
             }
         }
+
 
     }
 }

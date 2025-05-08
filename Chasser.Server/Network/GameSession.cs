@@ -24,7 +24,6 @@ public class GameSession
         gameState.RegisterPlayer(Player.White, player1Id);
         gameState.RegisterPlayer(Player.Black, player2Id);
 
-        _ = RunSessionAsync(); // Iniciar la sesión asíncrona
     }
 
     public TcpClient GetOpponent(TcpClient client)
@@ -34,7 +33,7 @@ public class GameSession
         return null;
     }
 
-    private async Task RunSessionAsync()
+    public async Task RunSessionAsync()
     {
         try
         {
@@ -47,10 +46,12 @@ public class GameSession
             var reader2 = new StreamReader(stream2);
             var writer2 = new StreamWriter(stream2) { AutoFlush = true };
 
-            // Iniciar partida asignando colores
+            Console.WriteLine($"[GameSession {gameCode}] Streams abiertos. Iniciando partida.");
+
             await SendStartMessages(writer1, writer2, gameState.Players);
 
-            // Manejar mensajes de ambos jugadores
+            Console.WriteLine($"[GameSession {gameCode}] Mensajes de inicio enviados a ambos jugadores.");
+
             var task1 = HandlePlayerMessages(reader1, writer2, Player.White);
             var task2 = HandlePlayerMessages(reader2, writer1, Player.Black);
 
@@ -73,75 +74,88 @@ public class GameSession
     {
         try
         {
-            while (!isGameOver)
+            while (!isGameOver && reader.BaseStream.CanRead)
             {
                 var message = await reader.ReadLineAsync();
-                if (message == null) break;
+                if (message == null)
+                {
+                    Console.WriteLine($"[GameSession {gameCode}] Cliente {playerColor} desconectado");
+                    break;
+                }
 
                 var request = JsonSerializer.Deserialize<RequestMessage>(message);
                 if (request == null) continue;
 
+                Console.WriteLine($"[GameSession {gameCode}] Procesando comando {request.Command} de {playerColor}");
+
                 switch (request.Command)
                 {
-                    case "MOVE":
+                    case "GAME_ACTION_MOVE":
                         await HandleMoveAsync(request, opponentWriter, playerColor);
                         break;
-                    //case "CHAT":
-                    //    await HandleChatMessage(request, opponentWriter);
-                    //    break;
-                    //case "RESIGN":
-                    //    await HandleResignation(playerColor, opponentWriter);
-                    //    break;
+
                     default:
-                        Console.WriteLine($"Comando no reconocido: {request.Command}");
+                        Console.WriteLine($"[GameSession {gameCode}] Comando no reconocido: {request.Command}");
                         break;
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error en jugador {playerColor}: {ex}");
-            await NotifyDisconnection(opponentWriter, playerColor);
+            if (!isGameOver)
+            {
+                Console.WriteLine($"[GameSession {gameCode}] Error inesperado en {playerColor}: {ex}");
+                await NotifyDisconnection(opponentWriter, playerColor);
+            }
         }
     }
 
     private async Task HandleMoveAsync(RequestMessage message, StreamWriter opponentWriter, Player playerColor)
     {
-        if (gameState.CurrentPlayer != playerColor)
+        try
         {
-            await SendJsonAsync(opponentWriter, "MOVE_ERROR", "No es tu turno");
-            return;
+            Console.WriteLine($"[GameSession {gameCode}] Procesando movimiento de {playerColor}");
+
+            if (gameState.CurrentPlayer != playerColor)
+            {
+                Console.WriteLine($"[GameSession {gameCode}] No es el turno de {playerColor}");
+                return;
+            }
+
+            var move = ParseMove(message.Data);
+            Console.WriteLine($"[GameSession {gameCode}] Movimiento recibido: {move.FromPos} → {move.ToPos}");
+
+            var result = gameState.ExecuteMove(move);
+
+            if (!result.IsValid)
+            {
+                Console.WriteLine($"[GameSession {gameCode}] Movimiento inválido: {result.ErrorMessage}");
+                return;
+            }
+
+            // Notificar al oponente
+            var response = new ResponseMessage
+            {
+                Status = "OPPONENT_MOVE",
+                Data = new Dictionary<string, string>
+            {
+                {"fromRow", move.FromPos.Row.ToString()},
+                {"fromCol", move.FromPos.Column.ToString()},
+                {"toRow", move.ToPos.Row.ToString()},
+                {"toCol", move.ToPos.Column.ToString()}
+            }
+            };
+
+            await opponentWriter.WriteLineAsync(JsonSerializer.Serialize(response));
+
+            if (result.GameOver)
+            {
+                await NotifyGameEnd(opponentWriter, result);
+            }
         }
-
-        var move = ParseMove(message.Data);
-        var result = gameState.ExecuteMove(move);
-
-        if (!result.IsValid)
+        catch (Exception ex)
         {
-            await SendJsonAsync(opponentWriter, "MOVE_ERROR", result.ErrorMessage);
-            return;
-        }
-
-        // Notificar movimiento válido a ambos jugadores
-        var moveNotification = new Dictionary<string, string>
-        {
-            { "fromRow", move.FromPos.Row.ToString() },
-            { "fromCol", move.FromPos.Column.ToString() },
-            { "toRow", move.ToPos.Row.ToString() },
-            { "toCol", move.ToPos.Column.ToString() },
-            { "currentPlayer", gameState.CurrentPlayer.ToString() }
-        };
-
-        if (result.CapturedPiece != null)
-        {
-            moveNotification.Add("captured", result.CapturedPiece.GetType().Name);
-        }
-
-        await SendJsonAsync(opponentWriter, "MOVE_MADE", "Movimiento realizado", moveNotification);
-
-        if (result.GameOver)
-        {
-            await NotifyGameEnd(opponentWriter, result);
+            Console.WriteLine($"[GameSession {gameCode}] Error procesando movimiento: {ex}");
         }
     }
 

@@ -78,7 +78,10 @@ namespace Chasser
                     if (response.Data != null && response.Data.TryGetValue("codigo", out string codigo))
                     {
                         // Pasar tanto el código como el token al constructor de Game
-                        NavigationService.Navigate(new Game(codigo, token, response.Data["color"]));
+                        var color = response.Data["color"];
+                        Debug.WriteLine("color recibido: " + color);
+
+                        NavigationService.Navigate(new Game(codigo, token, color));
                     }
                     else
                     {
