@@ -13,6 +13,8 @@ using Chasser.Common.Network;
 using Microsoft.EntityFrameworkCore;
 using Chasser.Common.Data;
 using Chasser.Common.Model;
+using Chasser.Common.Logic.Board;
+using Chasser.Common.Logic.Moves;
 
 namespace Chasser.Logic.Network
 {
@@ -22,11 +24,9 @@ namespace Chasser.Logic.Network
         private readonly ChasserContext _context;
         public event Action<string> ClientConnected;
         public event Action<string, string> MessageReceived;
-        private string userPath = "user.txt";
-        private static Queue<(TcpClient client, int userId, string gameCode)> waitingPlayers = new();
-        private static Dictionary<string, GameSession> activeGames = new();
-        private static Dictionary<TcpClient, string> clientToGameMap = new();
-        string gameCod = "";
+
+        // Diccionario para mantener los juegos activos contra IA
+        private Dictionary<TcpClient, GameState> activeAIGames = new();
 
         public TCPServer(ChasserContext context)
         {
@@ -62,16 +62,12 @@ namespace Chasser.Logic.Network
                     string message = await reader.ReadLineAsync();
                     if (message == null)
                     {
-                        Console.WriteLine("Mensaje nulo, cerrando conexión.");
+                        Console.WriteLine("Cliente desconectado.");
                         break;
                     }
 
                     Console.WriteLine($"Mensaje recibido: {message}");
-
-                    MessageReceived?.Invoke(
-                        ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString(),
-                        message
-                    );
+                    MessageReceived?.Invoke(((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString(), message);
 
                     var msg = JsonSerializer.Deserialize<RequestMessage>(message);
                     if (msg == null)
@@ -82,13 +78,6 @@ namespace Chasser.Logic.Network
 
                     Console.WriteLine($"Comando recibido: {msg.Command}");
 
-
-                    if (clientToGameMap.ContainsKey(client))
-                    {
-                        Console.WriteLine("Cliente asignado a una partida. Terminando lectura en HandleClientAsync.");
-                        return; // GameSession se encargará de leer sus mensajes
-                    }
-
                     switch (msg.Command)
                     {
                         case "REGISTER":
@@ -97,16 +86,22 @@ namespace Chasser.Logic.Network
                         case "LOGIN":
                             await HandleLogin(msg.Data, writer);
                             break;
-                        case "START_GAME":
-                            await GenerateGame(msg.Data, writer, client);
-                            break;
-                        case "JOIN_GAME":
-                            await JoinGame(msg.Data, writer, client);
-                            break;
                         case "LOGOUT":
                             await HandleLogOut(msg.Data, writer);
                             break;
-                        
+                        case "START_GAME_IA":
+                            await StartGameAgainstAI(msg.Data, writer, client);
+                            break;
+                        case "GAME_ACTION_MOVE":
+                            if (activeAIGames.TryGetValue(client, out var gameState))
+                            {
+                                await ProcessPlayerMove(msg.Data, gameState, writer);
+                            }
+                            else
+                            {
+                                await SendJsonAsync(writer, "GAME_ERROR", "No hay partida activa");
+                            }
+                            break;
                         default:
                             Console.WriteLine($"Comando no reconocido: {msg.Command}");
                             break;
@@ -119,32 +114,176 @@ namespace Chasser.Logic.Network
             }
             finally
             {
-                // Si estaba esperando, quitarlo de la cola
-                var waitingPlayer = waitingPlayers.FirstOrDefault(x => x.client == client);
-                if (waitingPlayer.client != null)
-                {
-                    var newQueue = new Queue<(TcpClient, int, string)>(waitingPlayers.Where(x => x.client != client));
-                    waitingPlayers = newQueue;
-                }
-
-                // Si estaba en una partida, notificar al oponente
-                if (clientToGameMap.TryGetValue(client, out var gameCode))
-                {
-                    if (activeGames.TryGetValue(gameCode, out var session))
-                    {
-                        var opponent = session.GetOpponent(client);
-                        if (opponent != null && opponent.Connected)
-                        {
-                            await NotifyOpponentDisconnection(opponent);
-                        }
-                        activeGames.Remove(gameCode);
-                    }
-                    clientToGameMap.Remove(client);
-                }
-
+                activeAIGames.Remove(client);
                 client.Dispose();
+                Console.WriteLine("Cliente desconectado y recursos liberados.");
             }
         }
+
+        private async Task ProcessPlayerMove(Dictionary<string, string> moveData, GameState gameState, StreamWriter writer)
+        {
+            try
+            {
+                // Validación adicional
+                if (!moveData.TryGetValue("fromRow", out var fromRow) ||
+                    !moveData.TryGetValue("fromCol", out var fromCol) ||
+                    !moveData.TryGetValue("toRow", out var toRow) ||
+                    !moveData.TryGetValue("toCol", out var toCol))
+                {
+                    await SendJsonAsync(writer, "MOVE_ERROR", "Datos de movimiento incompletos");
+                    return;
+                }
+
+                var fromPos = new Position(int.Parse(fromRow), int.Parse(fromCol));
+                var toPos = new Position(int.Parse(toRow), int.Parse(toCol));
+
+                // Debugging: Mostrar estado actual
+                Console.WriteLine($"Intento de mover de {fromPos} a {toPos}");
+                Console.WriteLine($"Pieza en origen: {gameState.Board[fromPos]?.ToString() ?? "vacía"}");
+                Console.WriteLine($"Pieza en destino: {gameState.Board[toPos]?.ToString() ?? "vacía"}");
+                Console.WriteLine($"Turno actual: {gameState.CurrentPlayer}");
+
+                var move = new NormalMove(fromPos, toPos);
+                var result = gameState.ExecuteMove(move);
+
+                if (!result.IsValid)
+                {
+                    Console.WriteLine($"Movimiento inválido: {result.ErrorMessage}");
+                    await SendJsonAsync(writer, "MOVE_ERROR", result.ErrorMessage);
+                    return;
+                }
+
+                await SendJsonAsync(writer, "MOVE_ACCEPTED", "Movimiento aceptado");
+
+                // Movimiento de IA
+                await MakeAIMove(gameState, writer);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error procesando movimiento: {ex}");
+                await SendJsonAsync(writer, "MOVE_ERROR", "Error interno del servidor");
+            }
+        }
+
+        private async Task MakeAIMove(GameState gameState, StreamWriter writer)
+        {
+            var aiMove = GenerateAIMove(gameState);
+            if (aiMove != null)
+            {
+                var result = gameState.ExecuteMove(aiMove);
+                if (result.IsValid)
+                {
+                    await SendJsonAsync(writer, "AI_MOVE", "Movimiento de IA",
+                        new Dictionary<string, string>
+                        {
+                            { "fromRow", aiMove.FromPos.Row.ToString() },
+                            { "fromCol", aiMove.FromPos.Column.ToString() },
+                            { "toRow", aiMove.ToPos.Row.ToString() },
+                            { "toCol", aiMove.ToPos.Column.ToString() }
+                        });
+
+                    if (result.GameOver)
+                    {
+                        await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
+                            new Dictionary<string, string>
+                            {
+                                { "winner", result.Winner?.ToString() ?? "draw" }
+                            });
+                    }
+                }
+            }
+        }
+
+        private async Task SaveGameToDatabase(int userId, string gameCode)
+        {
+            var newGame = new Partida
+            {
+                Codigo = gameCode,
+                Jugador1Id = userId,
+                Fecha_Creacion = DateTime.UtcNow,
+                Duracion = TimeSpan.Zero,
+                Ganador = ""
+            };
+
+            _context.Partidas.Add(newGame);
+            await _context.SaveChangesAsync();
+
+            _context.Partidas_Jugadores.Add(new Partida_Jugador
+            {
+                PartidaId = newGame.Id,
+                UsuarioId = userId
+            });
+            await _context.SaveChangesAsync();
+        }
+
+        private Move GenerateAIMove(GameState gameState)
+        {
+            var validMoves = new List<Move>();
+
+            // Buscar todos los movimientos válidos para las piezas negras (IA)
+            for (int row = 0; row < 7; row++)
+            {
+                for (int col = 0; col < 7; col++)
+                {
+                    var pos = new Position(row, col);
+                    var piece = gameState.Board[pos];
+                    if (piece?.Color == Player.Black)
+                    {
+                        validMoves.AddRange(gameState.GetLegalMoves(pos));
+                    }
+                }
+            }
+
+            return validMoves.Count > 0 ? validMoves[new Random().Next(validMoves.Count)] : null;
+        }
+
+        private async Task StartGameAgainstAI(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
+        {
+            Console.WriteLine("Procesando START_GAME_IA...");
+
+            try
+            {
+                // Validar token
+                if (!data.TryGetValue("token", out var token))
+                {
+                    await SendJsonAsync(writer, "START_GAME_FAIL", "Token necesario");
+                    return;
+                }
+
+                Usuario user = await ValidateToken(token);
+                if (user == null)
+                {
+                    await SendJsonAsync(writer, "START_GAME_FAIL", "Token inválido");
+                    return;
+                }
+
+                // Crear estado del juego
+                var gameState = new GameState(Player.White, Board.Initialize());
+                activeAIGames[client] = gameState;
+
+                // Opcional: Guardar en base de datos
+                string gameCode = GenerateCod();
+                await SaveGameToDatabase(user.Id, gameCode);
+
+                // Responder al cliente
+                await SendJsonAsync(writer, "START_GAME_SUCCESS", "Partida contra IA iniciada",
+                    new Dictionary<string, string>
+                    {
+                        { "color", "white" },
+                        { "codigo", gameCode },
+                        { "oponente", "IA" }
+                    });
+
+                Console.WriteLine($"Partida contra IA iniciada para {user.Nombre}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en StartGameAgainstAI: {ex}");
+                await SendJsonAsync(writer, "START_GAME_FAIL", "Error iniciando partida");
+                activeAIGames.Remove(client);
+            }
+        }
+        
 
         private async Task NotifyOpponentDisconnection(TcpClient opponent)
         {
@@ -160,205 +299,12 @@ namespace Chasser.Logic.Network
             }
         }
 
-        private async Task JoinGame(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
-        {
-            Console.WriteLine("Procesando JOIN_GAME...");
-
-            try
-            {
-                // 1. Validar token
-                if (!data.TryGetValue("token", out var token) || string.IsNullOrWhiteSpace(token))
-                {
-                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token requerido");
-                    return;
-                }
-
-                // 2. Obtener usuario desde token
-                var userId = await GetUserFromTokenAsync(token);
-                if (userId == null)
-                {
-                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Token inválido");
-                    return;
-                }
-
-                // 3. Validar código de partida
-                if (!data.TryGetValue("codigo", out var gameCode) || string.IsNullOrWhiteSpace(gameCode))
-                {
-                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Código de partida necesario");
-                    return;
-                }
-
-                // 4. Buscar partida en base de datos
-                var partida = await _context.Partidas.FirstOrDefaultAsync(p => p.Codigo == gameCode);
-                if (partida == null)
-                {
-                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Partida no encontrada");
-                    return;
-                }
-
-                // 5. Verificar si la partida está llena
-                if (partida.Jugador1Id != null && partida.Jugador2Id != null)
-                {
-                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "La partida ya está completa");
-                    return;
-                }
-
-                // 6. Buscar jugador esperando en esta partida
-                var waitingPlayer = FindWaitingPlayerForGame(gameCode, userId.Value);
-                if (waitingPlayer == null)
-                {
-                    await SendJsonAsync(writer, "JOIN_GAME_FAIL", "No hay jugador esperando en esta partida");
-                    return;
-                }
-
-                // 7. Actualizar base de datos
-                if (partida.Jugador1Id == null)
-                {
-                    partida.Jugador1Id = userId.Value;
-                }
-                else
-                {
-                    partida.Jugador2Id = userId.Value;
-                }
-
-                _context.Partidas_Jugadores.Add(new Partida_Jugador
-                {
-                    PartidaId = partida.Id,
-                    UsuarioId = userId.Value
-                });
-                await _context.SaveChangesAsync();
-
-                // 8. Obtener nombres de jugadores
-                var player1Name = (await _context.Usuarios.FindAsync(waitingPlayer.Value.userId))?.Nombre;
-                var player2Name = (await _context.Usuarios.FindAsync(userId.Value))?.Nombre;
-
-                // 9. Asignar colores
-                const string player1Color = "white";
-                const string player2Color = "black";
-
-                // 10. Notificar al jugador que se unió (Jugador 2 - Negro)
-                await SendJsonAsync(writer, "JOIN_GAME_SUCCESS", "Unido a la partida",
-                    new Dictionary<string, string> {
-                { "codigo", gameCode },
-                { "color", player2Color },
-                { "oponente", player1Name },
-                { "jugadorId", userId.Value.ToString() }
-                    });
-
-                // 11. Notificar al jugador que esperaba (Jugador 1 - Blanco)
-                var opponentWriter = new StreamWriter(waitingPlayer.Value.client.GetStream()) { AutoFlush = true };
-                await SendJsonAsync(opponentWriter, "GAME_STARTED", "Partida iniciada",
-                    new Dictionary<string, string> {
-                { "codigo", gameCode },
-                { "color", player1Color },
-                { "oponente", player2Name },
-                { "jugadorId", waitingPlayer.Value.userId.ToString() }
-                    });
-
-                // 12. Crear sesión de juego
-                var gameSession = new GameSession(
-                    waitingPlayer.Value.client, // Jugador 1 (Blanco)
-                    client,                     // Jugador 2 (Negro)
-                    gameCode,
-                    waitingPlayer.Value.userId, // ID Jugador 1
-                    userId.Value);              // ID Jugador 2
-
-                // 13. Registrar en estructuras de control
-                activeGames.Add(gameCode, gameSession);
-                clientToGameMap.Add(client, gameCode);
-                clientToGameMap.Add(waitingPlayer.Value.client, gameCode);
-
-                Console.WriteLine($"Partida {gameCode} iniciada entre {player1Name} (blanco) y {player2Name} (negro)");
-
-                _ = gameSession.RunSessionAsync(); // NO esperes la tarea, solo la lanzas
-                return;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error en JoinGame: {ex}");
-                await SendJsonAsync(writer, "JOIN_GAME_FAIL", "Error interno del servidor");
-            }
-        }
 
 
-        private (TcpClient client, int userId)? FindWaitingPlayerForGame(string gameCode, int currentUserId)
-        {
-            // Hacer una copia de la cola actual para iterar
-            var tempQueue = new Queue<(TcpClient client, int userId, string gameCode)>(waitingPlayers);
-
-            while (tempQueue.Count > 0)
-            {
-                var item = tempQueue.Dequeue();
-
-                // Verificar si cumple las condiciones
-                if (item.gameCode == gameCode &&
-                    item.userId != currentUserId &&
-                    item.client.Connected)
-                {
-                    // Crear nueva cola sin este jugador
-                    waitingPlayers = new Queue<(TcpClient, int, string)>(
-                        waitingPlayers.Where(x => x.client != item.client ||
-                                                x.userId != item.userId ||
-                                                x.gameCode != item.gameCode));
-
-                    return (item.client, item.userId);
-                }
-            }
-            return null;
-        }
+        
 
 
-        private async Task StartGameSession(TcpClient player1, TcpClient player2, string gameCode,
-                                  int player1Id, int player2Id, StreamWriter initiatorWriter)
-        {
-            try
-            {
-                // Crear la sesión de juego
-                var gameSession = new GameSession(player1, player2, gameCode, player1Id, player2Id);
-
-                // Registrar en las estructuras de control
-                activeGames.Add(gameCode, gameSession);
-                clientToGameMap.Add(player1, gameCode);
-                clientToGameMap.Add(player2, gameCode);
-
-                // Obtener nombres de los jugadores
-                var player1Name = (await _context.Usuarios.FindAsync(player1Id))?.Nombre;
-                var player2Name = (await _context.Usuarios.FindAsync(player2Id))?.Nombre;
-
-                // Notificar al jugador 1 (creador)
-                await SendJsonAsync(initiatorWriter, "GAME_STARTED", "Partida iniciada",
-                    new Dictionary<string, string> {
-                { "codigo", gameCode },
-                { "oponente", player2Name },
-                { "color", "white" }
-                    });
-
-                // Notificar al jugador 2 (que se unió)
-                using var player2Stream = player2.GetStream();
-                using var player2Writer = new StreamWriter(player2Stream) { AutoFlush = true };
-
-                await SendJsonAsync(player2Writer, "GAME_STARTED", "Partida iniciada",
-                    new Dictionary<string, string> {
-                { "codigo", gameCode },
-                { "oponente", player1Name },
-                { "color", "black" }
-                    });
-
-                Console.WriteLine($"Partida {gameCode} iniciada entre {player1Name} y {player2Name}");
-                _ = gameSession.RunSessionAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al iniciar sesión: {ex}");
-
-                // Limpiar en caso de error
-                activeGames.Remove(gameCode);
-                clientToGameMap.Remove(player1);
-                clientToGameMap.Remove(player2);
-
-                throw;
-            }
-        }
+    
 
 
         private async Task<int?> GetUserFromTokenAsync(string token)
@@ -366,37 +312,6 @@ namespace Chasser.Logic.Network
             var usuario = await _context.Sesiones_Usuarios.FirstOrDefaultAsync(u => u.Token == token);
             return usuario.UsuarioId;
         }
-
-        //private async Task HandleValidateToken(Dictionary<string, string> data, StreamWriter writer)
-        //{
-        //    try
-        //    {
-        //        // 1. Validar existencia del token
-        //        if (!data.TryGetValue("token", out string? token) || string.IsNullOrWhiteSpace(token))
-        //        {
-        //            await SendJsonAsync(writer, "TOKEN_INVALID", new { error = "Token requerido" });
-        //            return;
-        //        }
-
-        //        // 2. Validar contra la base de datos
-        //        var user = await ValidateToken(token);
-
-        //        // 3. Responder
-        //        await SendJsonAsync(writer,
-        //            user != null ? "TOKEN_VALID" : "TOKEN_INVALID",
-        //            new
-        //            {
-        //                valid = user != null,
-        //                userId = user?.Id,
-        //                username = user?.Nombre
-        //            });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Error validando token: {ex.Message}");
-        //        await SendJsonAsync(writer, "VALIDATION_ERROR", new { error = ex.Message });
-        //    }
-        //}
 
         private async Task HandleLogOut(Dictionary<string, string> data, StreamWriter writer)
         {
@@ -434,169 +349,12 @@ namespace Chasser.Logic.Network
                 await SendJsonAsync(writer, "LOGOUT_SUCCESS", "Sesión cerrada correctamente");
             }
         }
-
-        private async Task GenerateGame(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
-        {
-            Console.WriteLine("Procesando START_GAME...");
-
-            try
-            {
-                // Validación del token
-                if (!data.ContainsKey("token"))
-                {
-                    await SendJsonAsync(writer, "START_GAME_FAIL", "Token necesario");
-                    return;
-                }
-
-                string token = data["token"];
-                Usuario user = await ValidateToken(token);
-
-                if (user == null)
-                {
-                    await SendJsonAsync(writer, "START_GAME_FAIL", "Token inválido o expirado");
-                    return;
-                }
-
-                // Generar código único para la partida
-                string gameCode = GenerateCod();
-
-                // Verificar unicidad del código
-                if (_context.Partidas.Any(p => p.Codigo == gameCode))
-                {
-                    await SendJsonAsync(writer, "START_GAME_FAIL", "Código duplicado, intenta nuevamente");
-                    return;
-                }
-
-                // Crear registro en la base de datos
-                var newGame = new Partida
-                {
-                    Codigo = gameCode,
-                    Jugador1Id = user.Id,
-                    Fecha_Creacion = DateTime.UtcNow,
-                    Duracion = TimeSpan.Zero,
-                    Ganador = ""
-                };
-
-                _context.Partidas.Add(newGame);
-                await _context.SaveChangesAsync();
-
-                // Registrar también en Partida_Jugador
-                _context.Partidas_Jugadores.Add(new Partida_Jugador
-                {
-                    PartidaId = newGame.Id,
-                    UsuarioId = user.Id
-                });
-                await _context.SaveChangesAsync();
-
-                // Buscar oponente
-                var opponent = FindOpponent(client, user.Id, gameCode);
-
-                if (opponent == null)
-                {
-                    // No hay oponente disponible, poner en cola de espera
-                    waitingPlayers.Enqueue((client, user.Id, gameCode));
-                    await SendJsonAsync(writer, "START_GAME_WAITING", "Esperando oponente...",
-                        new Dictionary<string, string> { { "codigo", gameCode }, { "color", "white" } });
-                }
-                else
-                {
-                    // Oponente encontrado, iniciar partida
-                    await StartGameSession(client, opponent.Value.client, gameCode, user.Id, opponent.Value.userId, writer);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error en GenerateGame: {ex}");
-                await SendJsonAsync(writer, "START_GAME_FAIL", "Error interno del servidor");
-            }
-        }
-
-        private (TcpClient client, int userId)? FindOpponent(TcpClient currentClient, int currentUserId, string gameCode)
-        {
-            // Versión optimizada que resuelve ambos problemas:
-            while (waitingPlayers.TryPeek(out var candidate))
-            {
-                // Limpiar desconectados primero
-                if (!candidate.client.Connected)
-                {
-                    waitingPlayers.Dequeue();
-                    continue;
-                }
-
-                // Validar oponente adecuado
-                if (candidate.userId != currentUserId && candidate.gameCode == gameCode)
-                {
-                    var opponent = waitingPlayers.Dequeue();
-                    return (opponent.client, opponent.userId); // Conversión explícita
-                }
-                break;
-            }
-            return null;
-        }
-
-        private void CleanDisconnectedPlayers()
-        {
-            // Crear nueva cola solo con jugadores conectados
-            var connectedPlayers = waitingPlayers.Where(x => x.client.Connected).ToList();
-            waitingPlayers = new Queue<(TcpClient, int, string)>(connectedPlayers);
-        }
-
-
-
-
-        private async Task<bool> CreateGame(StreamWriter writer, int id)
-        {
-            Console.WriteLine("Creando partida...");
-
-            gameCod = GenerateCod();
-            Console.WriteLine($"Código generado para partida: {gameCod}");
-
-            if (_context.Partidas.Any(p => p.Codigo == gameCod))
-            {
-                Console.WriteLine("Código duplicado, abortando creación.");
-                await SendJsonAsync(writer, "CREATE_GAME_FAIL", "Se ha generado un mismo código, vuelve a intentarlo");
-                return false;
-            }
-
-            var jugador1 = await _context.Usuarios.FindAsync(id);
-
-            if (jugador1 == null)
-            {
-                Console.WriteLine("El usuario no existe.");
-                await SendJsonAsync(writer, "CREATE_GAME_FAIL", "El usuario no existe");
-                return false;
-            }
-
-            var newGame = new Partida
-            {
-                Ganador = "",
-                Codigo = gameCod,
-                Jugador1Id = jugador1.Id,
-                Duracion = TimeSpan.Zero,
-                Fecha_Creacion = DateTime.UtcNow,
-            };
-
-            _context.Partidas.Add(newGame);
-            await _context.SaveChangesAsync();
-            Console.WriteLine("Partida creada y guardada en base de datos.");
-
-            var newPartidaJugador = new Partida_Jugador
-            {
-                PartidaId = newGame.Id,
-                UsuarioId = id
-            };
-
-            _context.Partidas_Jugadores.Add(newPartidaJugador);
-            await _context.SaveChangesAsync();
-            Console.WriteLine("Jugador asignado a la partida.");
-
-            return true;
-        }
+        
 
         private string GenerateCod()
         {
             Random random = new();
-            const string caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            const string caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
             return new string(Enumerable.Range(0, 8).Select(_ => caracteres[random.Next(caracteres.Length)]).ToArray());
         }
 

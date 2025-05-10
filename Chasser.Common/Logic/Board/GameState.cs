@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using Chasser.Moves;
+using Chasser.Common.Logic.Moves;
 
-namespace Chasser.Logic.Board
+namespace Chasser.Common.Logic.Board
 {
     public class GameState
     {
@@ -46,30 +47,64 @@ namespace Chasser.Logic.Board
 
         public MoveValidationResult ValidateMove(Move move)
         {
-            // 1. Validar que hay pieza en la posición de origen
-            if (Board.isEmpty(move.FromPos))
+            // 1. Verificar que la posición de origen está dentro del tablero
+            if (!Board.isInside(move.FromPos))
+                return MoveValidationResult.Invalid("Posición de origen fuera del tablero");
+
+            // 2. Verificar que hay una pieza en la posición de origen
+            Piece piece = Board[move.FromPos];
+            if (piece == null)
                 return MoveValidationResult.Invalid("No hay pieza en la posición de origen");
 
-            // 2. Validar que es el turno del jugador
-            if (Board[move.FromPos].Color != CurrentPlayer)
-                return MoveValidationResult.Invalid("No es tu turno");
+            // 3. Verificar que la pieza es del jugador actual
+            if (piece.Color != CurrentPlayer)
+                return MoveValidationResult.Invalid("No es tu pieza");
 
-            // 3. Validar que el movimiento es legal
-            var legalMoves = GetLegalMoves(move.FromPos);
-            if (!legalMoves.Any(m => m.Equals(move)))
-                return MoveValidationResult.Invalid("Movimiento no permitido");
+            // 4. Verificar que la posición de destino está dentro del tablero
+            if (!Board.isInside(move.ToPos))
+                return MoveValidationResult.Invalid("Posición de destino fuera del tablero");
+
+            // 5. Obtener todos los movimientos legales para esta pieza
+            var legalMoves = piece.GetMoves(move.FromPos, Board);
+
+            // 6. Verificar si el movimiento propuesto está entre los movimientos legales
+            bool isValid = legalMoves.Any(m =>
+                m.ToPos == move.ToPos &&
+                m.GetType() == move.GetType());
+
+            if (!isValid)
+            {
+                Debug.WriteLine($"Movimiento inválido. Movimientos legales para {piece.Type} en {move.FromPos}:");
+                foreach (var legalMove in legalMoves)
+                {
+                    Debug.WriteLine($"- {legalMove.FromPos} → {legalMove.ToPos}");
+                }
+                return MoveValidationResult.Invalid("Movimiento no permitido para esta pieza");
+            }
 
             return MoveValidationResult.Valid();
         }
 
         public MoveResult ExecuteMove(Move move)
         {
+            Console.WriteLine($"Intentando ejecutar movimiento: {move.FromPos} → {move.ToPos}");
+
             if (IsGameOver())
+            {
+                Console.WriteLine("Movimiento rechazado: juego ya terminado");
                 return MoveResult.GameAlreadyOver;
+            }
 
             var validation = ValidateMove(move);
             if (!validation.IsValid)
+            {
+                Console.WriteLine($"Movimiento inválido: {validation.ErrorMessage}");
+                Console.WriteLine($"Tablero actual:\n{Board.ToString()}");
+                Console.WriteLine($"Turno actual: {CurrentPlayer}");
+                Console.WriteLine($"Pieza en origen: {Board[move.FromPos]?.ToString() ?? "vacía"}");
+                Console.WriteLine($"Pieza en destino: {Board[move.ToPos]?.ToString() ?? "vacía"}");
                 return MoveResult.FromValidation(validation);
+            }
 
             Piece capturedPiece = Board[move.ToPos];
             move.Execute(Board);
@@ -99,6 +134,11 @@ namespace Chasser.Logic.Board
             );
         }
 
+        //public IEnumerable<Move> GetAllMoves(Player color)
+        //{
+        //    return GetLegalMovesForPlayer(color);
+        //}
+
         private void CheckGameEndConditions()
         {
             // Victoria por control del centro (posición 3,3)
@@ -123,7 +163,7 @@ namespace Chasser.Logic.Board
             }
         }
 
-        private IEnumerable<Move> GetLegalMovesForPlayer(Player player)
+        public IEnumerable<Move> GetLegalMovesForPlayer(Player player)
         {
             // Buscar todas las posiciones con piezas del jugador
             for (int row = 0; row < 7; row++)

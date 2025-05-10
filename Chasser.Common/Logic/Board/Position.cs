@@ -4,9 +4,9 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using Chasser.Logic.Enums;
+using Chasser.Common.Logic.Enums;
 
-namespace Chasser.Logic.Board
+namespace Chasser.Common.Logic.Board
 {
     public class Position
     {
@@ -52,5 +52,6 @@ namespace Chasser.Logic.Board
         {
             return !(left == right);
         }
+        public override string ToString() => $"({Row},{Column})";
     }
 }

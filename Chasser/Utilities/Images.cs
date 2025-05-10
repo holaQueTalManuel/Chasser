@@ -5,8 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Chasser.Logic.Board;
-using Chasser.Logic.Enums;
+using Chasser.Common.Logic.Board;
+using Chasser.Common.Logic.Enums;
+
 
 namespace Chasser.Utilities
 {

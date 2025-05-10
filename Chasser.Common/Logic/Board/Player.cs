@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Chasser.Logic.Board
+namespace Chasser.Common.Logic.Board
 {
     public enum Player
     {

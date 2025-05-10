@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Chasser.Logic.Enums
+namespace Chasser.Common.Logic.Enums
 {
     public enum MoveType
     {

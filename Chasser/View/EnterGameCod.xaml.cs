@@ -14,7 +14,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Chasser.Common.Network;
 using Chasser.Logic;
-using Chasser.Logic.Board;
 using Chasser.Logic.Network;
 
 namespace Chasser.View

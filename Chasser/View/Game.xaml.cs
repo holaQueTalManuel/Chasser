@@ -1,188 +1,186 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection.PortableExecutable;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Chasser.Common.Logic.Board;
+using Chasser.Common.Logic.Moves;
 using Chasser.Common.Network;
-using Chasser.Logic.Board;
-using Chasser.Moves;
+using Chasser.Logic.Network;
 using Chasser.Utilities;
 using Chasser.View;
-using Chasser.Common.Model;
-using Chasser.Common.Data;
-using Chasser.Logic.Network;
-using System.Diagnostics;
 
 namespace Chasser
 {
-    /// <summary>
-    /// Lógica de interacción para Game.xaml
-    /// </summary>
     public partial class Game : Page
     {
-        private string gameCod;
-        private GameState gameState;
+        private readonly string gameCode;
+        private readonly GameState gameState;
         private readonly Image[,] pieceImages = new Image[7, 7];
         private readonly Rectangle[,] highlights = new Rectangle[7, 7];
         private readonly Dictionary<Position, Move> moveCache = new Dictionary<Position, Move>();
+
         private Position selectedPos = null;
         private string playerColor;
-        private bool isMyTurn = false;
+        private bool isMyTurn;
 
-        public Game(string cod, string token, string assignedColor)
+        public Game(string code, string token, string assignedColor)
         {
-            Debug.WriteLine("Inicializando juego...");
             InitializeComponent();
-            this.gameCod = cod;
-            gameCodeBlock.Text = $"Código de partida: {gameCod}";
-
+            gameCode = code;
             playerColor = assignedColor.ToLower().Trim();
-            isMyTurn = (playerColor == "white");
-            Debug.WriteLine($"Color asignado: {playerColor}, ¿Es mi turno? {isMyTurn}");
+            isMyTurn = playerColor == "white";
+
+            Debug.WriteLine($"Iniciando juego - Código: {gameCode}, Color: {playerColor}, Mi turno: {isMyTurn}");
 
             InitializeBoard();
             gameState = new GameState(Player.White, Board.Initialize());
-            DrawBoard(gameState.Board);
-            UpdateTurnIndicator();
+            UpdateDisplay();
 
             _ = ListenForServerMessagesAsync();
-        }
-
-
-        private async Task InitializeGameAsync(string token)
-        {
-            try
-            {
-                var joinRequest = new RequestMessage
-                {
-                    Command = "JOIN_GAME",
-                    Data = new Dictionary<string, string>
-                    {
-                        { "token", token },
-                        { "codigo", gameCod }
-                    }
-                };
-
-                await TCPClient.SendMessageAsync(joinRequest);
-                var joinResponse = await TCPClient.ReceiveMessageAsync();
-
-                if (joinResponse.Status == "JOIN_GAME_SUCCESS")
-                {
-                    playerColor = joinResponse.Data["color"];
-                    isMyTurn = playerColor == "white";
-                    UpdateTurnIndicator();
-                    _ = ListenForServerMessagesAsync();
-                }
-                else
-                {
-                    MessageBox.Show(joinResponse.Message);
-                    NavigationService.GoBack();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al unirse a la partida: {ex.Message}");
-                NavigationService.GoBack();
-            }
         }
 
         private async Task ListenForServerMessagesAsync()
         {
             try
             {
-                Debug.WriteLine("Esperando mensajes del servidor...");
                 while (TCPClient.IsConnected)
                 {
                     var response = await TCPClient.ReceiveMessageAsync();
-                    Debug.WriteLine($"Mensaje recibido del servidor: {response.Status}");
-                    Application.Current.Dispatcher.Invoke(() => ProcessServerMessage(response));
+                    Application.Current.Dispatcher.Invoke(() => ProcessServerResponse(response));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error al recibir mensaje del servidor: {ex.Message}");
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show($"Se perdió la conexión: {ex.Message}");
-                    NavigationService.GoBack();
-                });
+                Debug.WriteLine($"Error en ListenForServerMessagesAsync: {ex}");
+                ShowDisconnectMessage();
             }
         }
 
-
-        private void ProcessServerMessage(ResponseMessage response)
+        private void ProcessServerResponse(ResponseMessage response)
         {
-            switch (response.Status)
+            Debug.WriteLine($"Procesando respuesta: {response.Status}");
+
+            try
             {
-                case "OPPONENT_MOVE":
-                    var move = new NormalMove(
-                        new Position(int.Parse(response.Data["fromRow"]),
-                        int.Parse(response.Data["fromCol"])),
-                        new Position(int.Parse(response.Data["toRow"]),
-                        int.Parse(response.Data["toCol"]))
-                    );
-                    gameState.ExecuteMove(move);
-                    DrawBoard(gameState.Board);
-                    isMyTurn = true;
-                    UpdateTurnIndicator();
-                    break;
-
-                case "GAME_OVER":
-                    MessageBox.Show($"Juego terminado! {response.Message}");
-                    if (response.Data["winner"] == playerColor)
-                    {
-                        // Lógica adicional para victoria
-                    }
-                    NavigationService.GoBack();
-                    break;
-
-                case "OPPONENT_DISCONNECTED":
-                    MessageBox.Show("El oponente se ha desconectado");
-                    NavigationService.GoBack();
-                    break;
+                switch (response.Status)
+                {
+                    case "OPPONENT_MOVE":
+                        ProcessOpponentMove(response.Data);
+                        break;
+                    case "MOVE_ACCEPTED":
+                        ProcessMoveAccepted();
+                        break;
+                    case "MOVE_INVALID":
+                        ProcessInvalidMove(response.Message);
+                        break;
+                    case "GAME_OVER":
+                        ProcessGameOver(response);
+                        break;
+                    case "OPPONENT_DISCONNECTED":
+                        ProcessOpponentDisconnected();
+                        break;
+                    default:
+                        Debug.WriteLine($"Respuesta no manejada: {response.Status}");
+                        break;
+                }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error procesando respuesta: {ex}");
+            }
+        }
+
+        private void ProcessOpponentMove(Dictionary<string, string> moveData)
+        {
+            var move = new NormalMove(
+                new Position(int.Parse(moveData["fromRow"]), int.Parse(moveData["fromCol"])),
+                new Position(int.Parse(moveData["toRow"]), int.Parse(moveData["toCol"]))
+            );
+
+            gameState.ExecuteMove(move);
+            isMyTurn = true;
+            UpdateDisplay();
+        }
+
+        private void ProcessMoveAccepted()
+        {
+            // Actualizaciones adicionales si son necesarias
+            UpdateDisplay();
+        }
+
+        private void ProcessInvalidMove(string message)
+        {
+            MessageBox.Show(message, "Movimiento inválido", MessageBoxButton.OK, MessageBoxImage.Warning);
+            isMyTurn = true;
+            UpdateDisplay();
+        }
+
+        private void ProcessGameOver(ResponseMessage response)
+        {
+            string message = response.Message;
+            if (response.Data.TryGetValue("winner", out var winner) && winner == playerColor)
+            {
+                message = "¡Has ganado la partida!";
+            }
+
+            MessageBox.Show(message, "Juego terminado", MessageBoxButton.OK, MessageBoxImage.Information);
+            NavigationService.GoBack();
+        }
+
+        private void ProcessOpponentDisconnected()
+        {
+            MessageBox.Show("El oponente se ha desconectado", "Fin de la partida", MessageBoxButton.OK, MessageBoxImage.Information);
+            NavigationService.GoBack();
+        }
+
+        private void ShowDisconnectMessage()
+        {
+            MessageBox.Show("Se perdió la conexión con el servidor", "Error de conexión", MessageBoxButton.OK, MessageBoxImage.Error);
+            NavigationService.GoBack();
         }
 
         private void InitializeBoard()
         {
-            for (int r = 0; r <7; r++)
-            {
-                for (global::System.Int32  c= 0;  c< 7; c++)
-                {
-                    Image image = new Image();
-                    pieceImages[r, c] = image;
-                    image.MaxWidth = 400 / 7; // Ancho de celda
-                    image.MaxHeight = 400 / 7; // Alto de celda
-                    image.Stretch = Stretch.Uniform;
-                    pieceGrid.Children.Add(image);
+            double cellSize = 400 / 7.0;
 
-                    Rectangle highlight = new Rectangle();
-                    highlights[r, c] = highlight;
-                    highlightGrid.Children.Add(highlight);
+            for (int r = 0; r < 7; r++)
+            {
+                for (int c = 0; c < 7; c++)
+                {
+                    // Configurar imágenes de piezas
+                    pieceImages[r, c] = new Image
+                    {
+                        MaxWidth = cellSize,
+                        MaxHeight = cellSize,
+                        Stretch = Stretch.Uniform
+                    };
+                    pieceGrid.Children.Add(pieceImages[r, c]);
+
+                    // Configurar highlights
+                    highlights[r, c] = new Rectangle();
+                    highlightGrid.Children.Add(highlights[r, c]);
                 }
             }
         }
 
-        private void DrawBoard(Board board)
+        private void UpdateDisplay()
+        {
+            DrawBoard();
+            UpdateTurnIndicator();
+        }
+
+        private void DrawBoard()
         {
             for (int r = 0; r < 7; r++)
             {
-                for (global::System.Int32 c = 0; c < 7; c++)
+                for (int c = 0; c < 7; c++)
                 {
-                    Piece piece = board[r, c];
-                    pieceImages[r, c].Source = Images.GetImage(piece);
+                    pieceImages[r, c].Source = Images.GetImage(gameState.Board[r, c]);
                 }
             }
         }
@@ -193,166 +191,121 @@ namespace Chasser
             turnBlock.Foreground = isMyTurn ? Brushes.Green : Brushes.Red;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void boardGrid_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            //infoUser.Visibility = Visibility.Visible;
-            
-        }
+            if (!isMyTurn) return;
 
-        private void Rules_Click(object sender, RoutedEventArgs e)
-        {
-            //EJEMPLITO PARA TI MANUEL DEL FUTURO (ULTIMO FINDE DE ABRIL CUANDO TE PONGAS CON EL TCP), EL CONTENIDO DE ESTE BOTON LO TENDRA QUE HACER EL SERVER Y LO QUE SE MANDARA
-            //A LO MEJOR UN JSON QUE PONGA REGLAS VER, YO QUE SE, PERO SERA ALGO ASI, IMAGINO.
-            RulesWindow rulesWindow = new RulesWindow
+            Point point = e.GetPosition(pieceGrid);
+            Position pos = ToSquarePosition(point);
+
+            Debug.WriteLine($"Clic en posición: {pos.Row},{pos.Column}");
+            Debug.WriteLine($"Pieza en posición: {gameState.Board[pos]?.ToString() ?? "vacía"}");
+
+            if (selectedPos == null)
             {
-                Owner = Window.GetWindow(this)
-            };
-            rulesWindow.ShowDialog(); 
-        }
-
-        //private void LeerUsuarios()
-        //{
-        //    string savedUser = File.ReadAllText(userPath);
-
-        //    // Realiza una consulta personalizada usando LINQ
-        //    var user = _context.Usuarios.FirstOrDefault(u => u.Nombre == savedUser);
-
-        //    if (user != null)
-        //    {
-        //        nameBlock.Text = user.Nombre;
-        //        gamesBlock.Text = user.Partidas_Ganadas?.ToString() ?? "0";
-        //    }
-        //    else
-        //    {
-        //        nameBlock.Text = "No se encontró usuario";
-        //        gamesBlock.Text = "0";
-        //    }
-        //}
-
-        private void LogOut_Click(object sender, RoutedEventArgs e)
-        {
-            if (File.Exists("user.txt"))
-            {
-                File.Delete("user.txt");
-            }
-            NavigationService.Navigate(new Login());
-        }
-        private void Cell_Click(object sender, RoutedEventArgs e)
-        {
-            Button button = sender as Button;
-            // Aquí puedes manejar la lógica para los clics en las casillas
-            if (button.Background == Brushes.Green)
-            {
-                // Lógica cuando se hace clic en la casilla verde
+                SelectPiece(pos);
             }
             else
             {
-                // Lógica para las demás casillas
+                TryMakeMove(pos);
             }
         }
 
-        private void highlightGrid_MouseDown(object sender, MouseButtonEventArgs e)
+        private void SelectPiece(Position pos)
         {
-            
+            var piece = gameState.Board[pos];
+            if (piece == null || piece.Color.ToString().ToLower() != playerColor) return;
+
+            selectedPos = pos;
+            CacheMoves(gameState.GetLegalMoves(pos));
+            ShowHighlights();
         }
 
-        private void onToPositionSelected(Position pos)
+        private async void TryMakeMove(Position pos)
         {
-            selectedPos = null;
-            HideHighlights();
-
-            if (moveCache.TryGetValue(pos, out Move move))
+            if (!moveCache.TryGetValue(pos, out Move move))
             {
-                HandleMove(move);
+                Debug.WriteLine("Movimiento no válido");
+                return;
+            }
+
+            Debug.WriteLine($"Intentando mover de {selectedPos} a {pos}");
+
+            try
+            {
+                isMyTurn = false;
+                UpdateDisplay();
+
+                var request = new RequestMessage
+                {
+                    Command = "GAME_ACTION_MOVE",
+                    Data = new Dictionary<string, string>
+                {
+                    { "fromRow", move.FromPos.Row.ToString() },
+                    { "fromCol", move.FromPos.Column.ToString() },
+                    { "toRow", move.ToPos.Row.ToString() },
+                    { "toCol", move.ToPos.Column.ToString() }
+                }
+                };
+
+                await TCPClient.SendMessageAsync(request);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error al enviar movimiento: {ex}");
+                isMyTurn = true;
+                UpdateDisplay();
+                MessageBox.Show("Error al enviar movimiento", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                selectedPos = null;
+                HideHighlights();
             }
         }
 
         private async void HandleMove(Move move)
         {
-            Debug.WriteLine($"Enviando movimiento: de {move.FromPos} a {move.ToPos}");
+            Debug.WriteLine($"Enviando movimiento: {move.FromPos} a {move.ToPos}");
+
             var request = new RequestMessage
             {
                 Command = "GAME_ACTION_MOVE",
                 Data = new Dictionary<string, string>
-        {
-            { "type", "MOVE" },
-            { "fromRow", move.FromPos.Row.ToString() },
-            { "fromCol", move.FromPos.Column.ToString() },
-            { "toRow", move.ToPos.Row.ToString() },
-            { "toCol", move.ToPos.Column.ToString() }
-        }
+                {
+                    { "fromRow", move.FromPos.Row.ToString() },
+                    { "fromCol", move.FromPos.Column.ToString() },
+                    { "toRow", move.ToPos.Row.ToString() },
+                    { "toCol", move.ToPos.Column.ToString() }
+                }
             };
 
             try
             {
-                await TCPClient.SendMessageAsync(request);
                 isMyTurn = false;
                 UpdateTurnIndicator();
+
+                await TCPClient.SendMessageAsync(request);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error al enviar movimiento: {ex.Message}");
-                MessageBox.Show($"Error al enviar movimiento: {ex.Message}");
-            }
-        }
-
-
-        //private async Task ListenForOpponentAsync()
-        //{
-        //    while (true)
-        //    {
-        //        string line = await reader.ReadLineAsync();
-        //        if (line == null) break;
-
-        //        var message = JsonSerializer.Deserialize<RequestMessage>(line);
-        //        if (message.Command == "GAME_ACTION" && message.Data["type"] == "MOVE")
-        //        {
-        //            var move = new NormalMove(
-        //                new Position(int.Parse(message.Data["fromRow"]), int.Parse(message.Data["fromCol"])),
-        //                new Position(int.Parse(message.Data["toRow"]), int.Parse(message.Data["toCol"]))
-        //            );
-
-        //            Application.Current.Dispatcher.Invoke(() =>
-        //            {
-        //                gameState.ExecuteMove(move);
-        //                DrawBoard(gameState.Board);
-        //            });
-        //        }
-        //        else if (message.Command == "GAME_OVER")
-        //        {
-        //            MessageBox.Show("¡Fin del juego!");
-        //            Application.Current.Shutdown();
-        //        }
-        //    }
-        //}
-
-
-        private void onFromPositionSelected(Position pos)
-        {
-            IEnumerable<Move> moves = gameState.GetLegalMoves(pos);
-
-            if (moves.Any())
-            {
-                selectedPos = pos;
-                CacheMoves(moves);
-                ShowHighlights();
+                Debug.WriteLine($"Error al enviar movimiento: {ex}");
+                isMyTurn = true;
+                UpdateTurnIndicator();
+                MessageBox.Show("Error al enviar movimiento", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private Position ToSquarePosition(Point point)
         {
             double squareSize = pieceGrid.ActualWidth / 7;
-            int row = (int)(point.Y / squareSize);
-            int col = (int)(point.X / squareSize);
-
-            return new Position(row, col);
+            return new Position((int)(point.Y / squareSize), (int)(point.X / squareSize));
         }
 
         private void CacheMoves(IEnumerable<Move> moves)
         {
             moveCache.Clear();
-
-            foreach (Move move in moves)
+            foreach (var move in moves)
             {
                 moveCache[move.ToPos] = move;
             }
@@ -360,60 +313,29 @@ namespace Chasser
 
         private void ShowHighlights()
         {
-            var color = System.Windows.Media.Color.FromArgb(150, 125, 255, 125);
-            foreach (Position to in moveCache.Keys)
+            var highlightColor = new SolidColorBrush(Color.FromArgb(150, 125, 255, 125));
+            foreach (var pos in moveCache.Keys)
             {
-                highlights[to.Row, to.Column].Fill = new SolidColorBrush(color);
+                highlights[pos.Row, pos.Column].Fill = highlightColor;
             }
         }
+
         private void HideHighlights()
         {
-            //var color = System.Windows.Media.Color.FromArgb(150, 125, 255, 125);
-            foreach (Position to in moveCache.Keys)
+            foreach (var pos in moveCache.Keys)
             {
-                highlights[to.Row, to.Column].Fill = Brushes.Transparent;
+                highlights[pos.Row, pos.Column].Fill = Brushes.Transparent;
             }
         }
 
-        private void boardGrid_MouseDown(object sender, MouseButtonEventArgs e)
+        private void Rules_Click(object sender, RoutedEventArgs e)
         {
-            if (!isMyTurn)
-            {
-                Debug.WriteLine("Ignorando clic - No es tu turno");
-                return;
-            }
-
-            Point point = e.GetPosition(pieceGrid);
-            Position pos = ToSquarePosition(point);
-
-            if (selectedPos == null)
-            {
-                // Lógica para seleccionar pieza
-                Piece piece = gameState.Board[pos.Row, pos.Column];
-                if (piece == null || piece.Color.ToString().ToLower() != playerColor)
-                {
-                    Debug.WriteLine("Pieza no válida seleccionada");
-                    return;
-                }
-
-                // Si es una pieza válida del jugador
-                selectedPos = pos;
-                var moves = gameState.GetLegalMoves(pos);
-                CacheMoves(moves);
-                ShowHighlights();
-            }
-            else
-            {
-                // Lógica para mover pieza
-                if (moveCache.TryGetValue(pos, out Move move))
-                {
-                    HandleMove(move);
-                    selectedPos = null;
-                    HideHighlights();
-                }
-            }
+            new RulesWindow { Owner = Window.GetWindow(this) }.ShowDialog();
         }
 
-
+        private void LogOut_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new Login());
+        }
     }
 }

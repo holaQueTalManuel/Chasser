@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Chasser.Logic.Enums;
-using Chasser.Moves;
+using Chasser.Common.Logic.Enums;
+using Chasser.Common.Logic.Moves;
 
-namespace Chasser.Logic.Board
+
+namespace Chasser.Common.Logic.Board
 {
     public class Sanguijuela : Piece
     {

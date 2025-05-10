@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Chasser.Logic.Board;
-using Chasser.Logic.Enums;
+using Chasser.Common.Logic.Board;
+using Chasser.Common.Logic.Enums;
 
-namespace Chasser.Moves
+namespace Chasser.Common.Logic.Moves
 {
     public abstract class Move
     {
@@ -14,7 +14,7 @@ namespace Chasser.Moves
         public abstract Position FromPos { get; }
         public abstract Position ToPos { get; }
 
-        public abstract void Execute(Board board);
+        public abstract void Execute(Board.Board board);
         
     }
 }

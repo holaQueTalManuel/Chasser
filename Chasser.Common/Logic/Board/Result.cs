@@ -1,7 +1,8 @@
 ﻿
-using Chasser.Logic.Enums;
 
-namespace Chasser.Logic.Board
+using Chasser.Common.Logic.Enums;
+
+namespace Chasser.Common.Logic.Board
 {
     public class Result
     {

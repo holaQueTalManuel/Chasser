@@ -55,13 +55,11 @@
             <TextBlock Text="Bienvenido a Chasser"
                        Style="{StaticResource TitleTextStyle}"/>
 
-            <Button Content="Iniciar Partida"
-                    Style="{StaticResource MainButtonStyle}"
-                    Click="StartGame_Click"/>
+            
 
-            <Button Content="Unirse a Partida"
-                    Style="{StaticResource MainButtonStyle}"
-                    Click="JoinGame_Click"/>
+            <Button Content="Juega contra IA"
+                Style="{StaticResource MainButtonStyle}"
+                Click="Start_Game_IA_Click"/>
 
             <Button Content="Salir"
                 Style="{StaticResource MainButtonStyle}"
