@@ -25,37 +25,37 @@ namespace Chasser.Logic
             //File.WriteAllText(path, token);
         }
 
-        public static async Task<bool> IsUserAuthenticatedAsync()
-        {
-            if (string.IsNullOrEmpty(_authToken))
-            {
-                // Intentar cargar de archivo si existe
-                if (File.Exists(path))
-                {
-                    _authToken = File.ReadAllText(path);
-                }
-                else
-                {
-                    return false;
-                }
-            }
+        //public static async Task<bool> IsUserAuthenticatedAsync()
+        //{
+        //    if (string.IsNullOrEmpty(_authToken))
+        //    {
+        //        // Intentar cargar de archivo si existe
+        //        if (File.Exists(path))
+        //        {
+        //            _authToken = File.ReadAllText(path);
+        //        }
+        //        else
+        //        {
+        //            return false;
+        //        }
+        //    }
 
-            try
-            {
-                var request = new RequestMessage
-                {
-                    Command = "VALIDATE_TOKEN",
-                    Data = new Dictionary<string, string> { { "token", _authToken } }
-                };
+        //    try
+        //    {
+        //        var request = new RequestMessage
+        //        {
+        //            Command = "VALIDATE_TOKEN",
+        //            Data = new Dictionary<string, string> { { "token", _authToken } }
+        //        };
 
-                var response = await TCPClient.SendMessageAsync(request);
-                return response.Status == "TOKEN_VALID";
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        //        var response = await TCPClientManager.SendMessageAsync(request);
+        //        return response.Status == "TOKEN_VALID";
+        //    }
+        //    catch
+        //    {
+        //        return false;
+        //    }
+        //}
 
         public static void ClearAuth()
         {

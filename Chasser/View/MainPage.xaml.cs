@@ -34,7 +34,9 @@ namespace Chasser
 
             try
             {
-                var response = await TCPClient.SendMessageAsync(request);
+                // Cambiar el tipo de variable a ResponseMessage explícitamente
+                ResponseMessage response =  await TCPClient.SendMessageAsync(request);
+                
 
                 if (response == null)
                 {

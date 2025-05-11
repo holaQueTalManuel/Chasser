@@ -18,7 +18,7 @@ namespace Chasser.Logic.Network
             PropertyNameCaseInsensitive = true,
             WriteIndented = false
         };
-
+        private static readonly SemaphoreSlim streamLock = new SemaphoreSlim(1, 2);
         public static bool IsConnected => _client?.Connected == true;
 
         public static async Task ConnectAsync(string ip, int port, int timeout = 5000)
@@ -50,10 +50,13 @@ namespace Chasser.Logic.Network
             if (!IsConnected)
                 throw new InvalidOperationException("Cliente no conectado al servidor");
 
+            await streamLock.WaitAsync(); // ⬅️ Bloqueo único para envío y recepción
+
             try
             {
                 string json = JsonSerializer.Serialize(message, _jsonOptions);
                 await _writer.WriteLineAsync(json);
+                await _writer.FlushAsync();
 
                 string responseJson = await _reader.ReadLineAsync();
                 if (string.IsNullOrEmpty(responseJson))
@@ -68,12 +71,18 @@ namespace Chasser.Logic.Network
                 Disconnect();
                 throw new Exception("Error en la comunicación con el servidor", ex);
             }
+            finally
+            {
+                streamLock.Release(); // ⬅️ Libera el turno
+            }
         }
 
         public static async Task<ResponseMessage> ReceiveMessageAsync()
         {
             if (!IsConnected)
                 throw new InvalidOperationException("Cliente no conectado al servidor");
+
+            await streamLock.WaitAsync(); // ⬅️ Espera el turno
 
             try
             {
@@ -90,7 +99,12 @@ namespace Chasser.Logic.Network
                 Disconnect();
                 throw new Exception("Error al recibir mensaje del servidor", ex);
             }
+            finally
+            {
+                streamLock.Release(); // ⬅️ Libera el turno
+            }
         }
+
 
         public static void Disconnect()
         {
