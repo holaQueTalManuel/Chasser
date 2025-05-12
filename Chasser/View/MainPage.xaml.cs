@@ -15,6 +15,11 @@ namespace Chasser
         public MainPage()
         {
             InitializeComponent();
+            this.Loaded += Login_Loaded;
+        }
+        private void Login_Loaded(object sender, RoutedEventArgs e)
+        {
+            (Window.GetWindow(this) as MainWindow)?.AjustarTamaño(900, 600);
         }
 
         private async void Start_Game_IA_Click(object sender, RoutedEventArgs e)

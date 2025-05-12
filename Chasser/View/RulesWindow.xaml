@@ -1,37 +1,95 @@
 ﻿<Window x:Class="Chasser.View.RulesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Chasser.View"
-        Icon="/Imgs/logo.ico"
-        mc:Ignorable="d"
-        Title="Reglas del juego" Height="400" Width="600" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+        Title="Reglas del juego" Height="400" Width="600"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
+        <SolidColorBrush x:Key="SoftBeige" Color="#FFFDF6E3" />
+        <DropShadowEffect x:Key="DropShadow" BlurRadius="10" ShadowDepth="0" Color="#C0A87A" Opacity="0.3"/>
+        <SolidColorBrush x:Key="AccentColor" Color="#C0A87A"/>
+        <Style x:Key="RoundedButton" TargetType="Button">
+            <Setter Property="Background" Value="Black"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="90"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="15"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="Aqua"/>
+                    <!-- color al pasar el mouse -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
-    <Grid Background="{StaticResource SoftBeige}">
-        <ScrollViewer>
-            <TextBlock TextWrapping="Wrap" FontSize="16">
-                Reglas del juego (NO ACABADAS):
-            <LineBreak/>
-            <LineBreak/>
-            - El objetivo es capturar todas las piezas del oponente o entrar en la casilla verde del centro (meta).
-            <LineBreak/>
-            - Sanguijuelas se mueven arriba, abajo y lados una casilla. Obliteradores se mueven en diagonal una/dos casillas.
-                Toneles se mueven arriba, abajo y lados una/dos casillas.
-            <LineBreak/>
-            - El turno cambia automáticamente tras mover.
-            <LineBreak/>
-            - Obliteradores pueden capturar a Sanguijuelas y Toneles pero no las pueden capturar en diagonal si estas estan juntas, tendria que ser no en diagonal. Pueden entrar a la meta si han capturado previamente.
-            <LineBreak/>
-            - Sanguijelas pueden capturar a Toneles y Obliteradores, pero a estos ultimos solo si se ha capturado a un Tonel.
-            <LineBreak/>
-            - Toneles solo tienen la mision de entrar a la meta, no pueden capturar a nadie.    
-            <LineBreak/>
-            </TextBlock>
-        </ScrollViewer>
+    <Grid Background="Transparent">
+        <Border Background="BurlyWood"
+                CornerRadius="40"
+                Padding="20"
+                Margin="20"
+                Effect="{StaticResource DropShadow}">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Título -->
+                <TextBlock Text="Reglas del juego"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="Black"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,10"/>
+
+                <!-- Contenido -->
+                <ScrollViewer Grid.Row="1">
+                    <TextBlock TextWrapping="Wrap" FontSize="16" Foreground="#333">
+                        - El objetivo es capturar todas las piezas del oponente o entrar en la casilla verde del centro (meta).
+                        <LineBreak/>
+                        - Sanguijuelas se mueven arriba, abajo y lados una casilla. Obliteradores se mueven en diagonal una/dos casillas. Toneles se mueven arriba, abajo y lados una/dos casillas.
+                        <LineBreak/>
+                        - El turno cambia automáticamente tras mover.
+                        <LineBreak/>
+                        - Obliteradores pueden capturar a Sanguijuelas y Toneles pero no las pueden capturar en diagonal si estas están juntas. Pueden entrar a la meta si han capturado previamente.
+                        <LineBreak/>
+                        - Sanguijelas pueden capturar a Toneles y Obliteradores, pero a estos últimos solo si se ha capturado a un Tonel.
+                        <LineBreak/>
+                        - Toneles solo tienen la misión de entrar a la meta, no pueden capturar a nadie.
+                    </TextBlock>
+                </ScrollViewer>
+
+                <!-- Botón cerrar -->
+                <Button Grid.Row="2"
+                        Content="Cerrar"
+                        Style="{StaticResource RoundedButton}"
+                        Click="Close_Click"/>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

@@ -4,7 +4,6 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:Chasser"
-
       mc:Ignorable="d" 
       d:DesignHeight="700" d:DesignWidth="900"
       Title="Registro">
@@ -12,7 +11,6 @@
     <Page.Resources>
         <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
 
-        <!-- Estilos base -->
         <Style x:Key="TextBoxStyle" TargetType="TextBox">
             <Setter Property="Height" Value="40"/>
             <Setter Property="FontSize" Value="16"/>
@@ -32,7 +30,6 @@
             <Setter Property="BorderBrush" Value="#D0D0D0"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
-
     </Page.Resources>
 
     <Grid Background="{StaticResource SoftBeige}">
@@ -41,14 +38,13 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-
         <!-- Logo -->
         <Image Source="/Imgs/logo.jpg"
                Width="80" Height="80"
                HorizontalAlignment="Center"
                Margin="0,20,0,0"/>
 
-        <!-- Formulario de Registro -->
+        <!-- Formulario -->
         <Border Grid.Row="1"
                 CornerRadius="16"
                 Padding="30,20"
@@ -67,40 +63,65 @@
                 <!-- Correo -->
                 <Grid>
                     <TextBox x:Name="EmailBox"
-                             Style="{StaticResource TextBoxStyle}"
-                             TextChanged="EmailBox_TextChanged"/>
-                    <TextBlock Text="Correo electrónico"
-                               Foreground="Gray"
-                               Margin="14,0,0,0"
-                               VerticalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Visibility="{Binding Text, ElementName=EmailBox}"/>
+             Style="{StaticResource TextBoxStyle}"
+             TextChanged="EmailBox_TextChanged"
+             GotFocus="EmailBox_GotFocus"
+             LostFocus="EmailBox_LostFocus"/>
+                    <TextBlock x:Name="EmailPlaceholder"
+               Text="Correo electrónico"
+               Foreground="Gray"
+               Margin="14,0,0,0"
+               VerticalAlignment="Center"
+               IsHitTestVisible="False"
+               Visibility="Visible"/>
                 </Grid>
 
                 <!-- Usuario -->
                 <Grid>
                     <TextBox x:Name="UsernameBox"
-                             Style="{StaticResource TextBoxStyle}"
-                             TextChanged="UsernameBox_TextChanged"/>
-                    <TextBlock Text="Nombre de usuario"
-                               Foreground="Gray"
-                               Margin="14,0,0,0"
-                               VerticalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Visibility="{Binding Text, ElementName=UsernameBox}"/>
+             Style="{StaticResource TextBoxStyle}"
+             TextChanged="UsernameBox_TextChanged"
+             GotFocus="UsernameBox_GotFocus"
+             LostFocus="UsernameBox_LostFocus"/>
+                    <TextBlock x:Name="UsernamePlaceholder"
+               Text="Nombre de usuario"
+               Foreground="Gray"
+               Margin="14,0,0,0"
+               VerticalAlignment="Center"
+               IsHitTestVisible="False"
+               Visibility="Visible"/>
                 </Grid>
 
                 <!-- Contraseña -->
                 <Grid>
                     <PasswordBox x:Name="PasswordBox"
                                  Style="{StaticResource PasswordBoxStyle}"
-                                 PasswordChanged="PasswordBox_PasswordChanged"/>
-                    <TextBlock Text="Contraseña"
+                                 PasswordChanged="PasswordBox_PasswordChanged"
+                                 Visibility="Visible"/>
+
+                    <TextBox x:Name="PasswordTextBox"
+                             Style="{StaticResource TextBoxStyle}"
+                             Visibility="Collapsed"
+                             TextChanged="PasswordTextBox_TextChanged"/>
+
+                    <TextBlock x:Name="PasswordPlaceholder"
+                               Text="Contraseña"
                                Foreground="Gray"
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Visibility="{Binding Tag, ElementName=PasswordBox}"/>
+                               IsHitTestVisible="False"/>
+
+                    <Button x:Name="TogglePasswordButton"
+                            Content="👁️"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Width="30" Height="30"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Margin="0,0,10,0"
+                            FontSize="20"
+                            Cursor="Hand"
+                            Click="TogglePasswordVisibility"/>
                 </Grid>
 
                 <!-- Confirmar Contraseña -->
@@ -114,9 +135,20 @@
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
                                Visibility="{Binding Tag, ElementName=ConfirmPasswordBox}"/>
+                    <Button x:Name="TogglePasswordButtonConfirm"
+                        Content="👁️"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Width="30" Height="30"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        Margin="0,0,10,0"
+                        FontSize="20"
+                        Cursor="Hand"
+                        Click="TogglePasswordVisibility"/>
                 </Grid>
 
-                <!-- Botón de registro -->
+                <!-- Botón -->
                 <Button Content="Registrarse"
                         Height="45"
                         FontSize="16"
@@ -127,9 +159,10 @@
                         Cursor="Hand"
                         BorderThickness="0"
                         Padding="10"
-                        Click="Register_Click"/>
+                        Click="Register_Click"
+                        IsDefault="True"/>
 
-                <!-- Enlace para volver al login -->
+                <!-- Enlace -->
                 <TextBlock Text="¿Ya tienes cuenta? Inicia sesión"
                            Foreground="#2D2D30"
                            TextAlignment="Center"

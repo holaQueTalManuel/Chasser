@@ -4,7 +4,8 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:Chasser"
-      mc:Ignorable="d" 
+      mc:Ignorable="d"
+      
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Game">
 
@@ -29,10 +30,35 @@
         <!-- Panel izquierdo con botones -->
         <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0">
             <Image Source="/Imgs/logo.jpg" Width="100" Height="100" Margin="5,5"/>
-            <Button Content="Reiniciar" Margin="0,5" Padding="10,5" Background="Azure"/>
-            <Button Click="LogOut_Click" Content="Salir" Margin="0,5" Padding="10,5" Background="Azure"/>
-            <Button Click="Rules_Click" Content="Ver Reglas" Margin="0,5" Padding="10,5" Background="IndianRed"/>
+
+            <Button Content="Reiniciar" Margin="5" Padding="10,5"
+        Background="#8B4513" Foreground="Beige"
+        FontWeight="Bold" FontFamily="Georgia"
+        Width="120" BorderBrush="#5C3317" BorderThickness="2">
+                <Button.Effect>
+                    <DropShadowEffect Opacity="0.3" BlurRadius="5"/>
+                </Button.Effect>
+            </Button>
+
+            <Button Content="Salir" Margin="5" Padding="10,5"
+        Background="#8B4513" Foreground="Beige"
+        FontWeight="Bold" FontFamily="Georgia"
+        Width="120" BorderBrush="#5C3317" BorderThickness="2">
+                <Button.Effect>
+                    <DropShadowEffect Opacity="0.3" BlurRadius="5"/>
+                </Button.Effect>
+            </Button>
+
+            <Button Content="Ver Reglas" Margin="5" Padding="10,5"
+        Background="#5C3317" Foreground="Beige"
+        FontWeight="Bold" FontFamily="Georgia" FontSize="16"
+        Width="140" BorderBrush="#3A1F0E" BorderThickness="3">
+                <Button.Effect>
+                    <DropShadowEffect Opacity="0.4" BlurRadius="7"/>
+                </Button.Effect>
+            </Button>
         </StackPanel>
+
 
         <Grid Grid.Column="1" Name="boardGrid" Width="500" Height="500" MouseDown="boardGrid_MouseDown">
             <Grid.Background>
@@ -47,31 +73,68 @@
             </UniformGrid>
         </Grid>
 
-        <TextBlock x:Name="turnBlock" 
-                   Grid.Row="0" Grid.Column="2"
-                   Text="Turno: Blancas" 
-                   FontSize="20" 
-                   FontWeight="Bold" 
-                   Foreground="White" 
-                   Background="Black" 
-                   Padding="5" 
-                   Margin="20,30,0,10"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Top"/>
+        <Border Grid.Row="0" Grid.Column="2"
+        Margin="20,30,0,10"
+        HorizontalAlignment="Left"
+        VerticalAlignment="Top"
+        CornerRadius="8"
+        Background="#2D2D30"
+        BorderBrush="#FF5722"
+        BorderThickness="2">
+            <StackPanel Orientation="Horizontal">
+                <!-- Indicador visual del turno -->
+                <Ellipse Width="16" Height="16" 
+                 Margin="10,0,5,0"
+                 VerticalAlignment="Center"
+                 Fill="White" 
+                 Stroke="#FF5722"
+                 StrokeThickness="1"/>
+
+                <!-- Texto del turno -->
+                <TextBlock x:Name="turnBlock"
+                   Text="TURNO: BLANCAS" 
+                   FontSize="16"
+                   FontFamily="Segoe UI Semibold"
+                   Foreground="White"
+                   Padding="5,8"
+                   VerticalAlignment="Center"
+                   />
+            </StackPanel>
+        </Border>
 
         <!-- Panel derecho con información -->
-        <StackPanel x:Name="infoUser" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,0,0,0">
+        <StackPanel x:Name="infoUser"
+            Grid.Column="2"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center"
+            Margin="20,0,0,0"
+            Background="#FFFF88"
+            Width="220"
+            Effect="{DynamicResource DropShadow}"
+            RenderTransformOrigin="0.5,0.5">
+
+            <StackPanel.RenderTransform>
+                <RotateTransform Angle="-1.5"/>
+            </StackPanel.RenderTransform>
+
+            <StackPanel.Resources>
+                <DropShadowEffect x:Key="DropShadow"
+                          Color="Black"
+                          Direction="315"
+                          ShadowDepth="5"
+                          Opacity="0.3"
+                          BlurRadius="10"/>
+            </StackPanel.Resources>
+
             <TextBlock Text="Datos del jugador" FontSize="17" FontWeight="Bold"/>
             <TextBlock x:Name="nameBlock" Text="Manuel Montero Calero" FontSize="17"/>
             <TextBlock x:Name="gamesBlock" Text="Partidas ganadas: 3" FontSize="17"/>
-
-            <!-- Nuevo TextBlock para mostrar el código de la partida -->
             <TextBlock x:Name="gameCodeBlock" 
-                       Text="Código de partida: ABC123" 
-                       FontSize="17" 
-                       Margin="0,10,0,0"
-                       FontWeight="Bold"
-                       Foreground="{StaticResource DarkBrown}"/>
+               Text="Código de partida: ABC123" 
+               FontSize="17" 
+               Margin="0,10,0,0"
+               FontWeight="Bold"
+               Foreground="{StaticResource DarkBrown}"/>
         </StackPanel>
     </Grid>
 </Page>

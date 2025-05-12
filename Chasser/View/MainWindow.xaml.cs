@@ -52,6 +52,14 @@ namespace Chasser
             }
 
         }
-        
+        public void AjustarTamaño(double ancho, double alto)
+        {
+            this.SizeToContent = SizeToContent.Manual;
+            this.Width = ancho;
+            this.Height = alto;
+        }
+
     }
-}
+    
+
+    }

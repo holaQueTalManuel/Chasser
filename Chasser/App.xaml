@@ -7,6 +7,10 @@
              >
     <Application.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <Style TargetType="Control">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <!-- Puedes cambiar "Segoe UI" por cualquier fuente instalada en el sistema -->
+        </Style>
 
     </Application.Resources>
 </Application>

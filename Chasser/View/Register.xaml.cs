@@ -1,20 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
-using Microsoft.Extensions.DependencyInjection;
-using Chasser.Logic.Network;
 using Chasser.Common.Network;
+using Chasser.Logic.Network;
 
 namespace Chasser
 {
@@ -23,22 +13,30 @@ namespace Chasser
     /// </summary>
     public partial class Register : Page
     {
+        private bool isPasswordVisible = false;
+
         public Register()
         {
             InitializeComponent();
+            Loaded += Login_Loaded;
         }
+
+        private void Login_Loaded(object sender, RoutedEventArgs e)
+        {
+            (Window.GetWindow(this) as MainWindow)?.AjustarTamaño(900, 600);
+        }
+
         private void LoginLink_Click(object sender, RoutedEventArgs e)
         {
             NavigationService.Navigate(new Login());
         }
 
-        //await solo se puede utilzar dentro de un metodo asincrono
         private async void Register_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(PasswordBox.Password) &&
-                !string.IsNullOrWhiteSpace(ConfirmPasswordBox.Password) &&
-                !string.IsNullOrWhiteSpace(EmailBox.Text) &&
-                !string.IsNullOrWhiteSpace(UsernameBox.Text))
+            if (!string.IsNullOrWhiteSpace(EmailBox.Text) &&
+                !string.IsNullOrWhiteSpace(UsernameBox.Text) &&
+                !string.IsNullOrWhiteSpace(PasswordBox.Password) &&
+                !string.IsNullOrWhiteSpace(ConfirmPasswordBox.Password))
             {
                 if (PasswordBox.Password == ConfirmPasswordBox.Password)
                 {
@@ -82,26 +80,112 @@ namespace Chasser
             }
         }
 
-
-
-
-        private void EmailBox_TextChanged(object sender, TextChangedEventArgs e) { }
-
-        private void UsernameBox_TextChanged(object sender, TextChangedEventArgs e) { }
-
-        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        private void EmailBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            PasswordBox.Tag = PasswordBox.Password;
+            EmailPlaceholder.Visibility = string.IsNullOrWhiteSpace(EmailBox.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
+        private void EmailBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            EmailPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void EmailBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(EmailBox.Text))
+                EmailPlaceholder.Visibility = Visibility.Visible;
+        }
+
+        // Placeholder para nombre de usuario
+        private void UsernameBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UsernamePlaceholder.Visibility = string.IsNullOrWhiteSpace(UsernameBox.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private void UsernameBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            UsernamePlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void UsernameBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(UsernameBox.Text))
+                UsernamePlaceholder.Visibility = Visibility.Visible;
+        }
+
+        // Placeholder para contraseña
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            UpdatePasswordPlaceholder();
+        }
+
+        private void PasswordTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdatePasswordPlaceholder();
+        }
+
+        private void PasswordTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            PasswordPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void PasswordTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            UpdatePasswordPlaceholder();
+        }
+
+        private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            PasswordPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            UpdatePasswordPlaceholder();
+        }
+
+        private void UpdatePasswordPlaceholder()
+        {
+            string passwordText = isPasswordVisible ? PasswordTextBox.Text : PasswordBox.Password;
+            PasswordPlaceholder.Visibility = string.IsNullOrEmpty(passwordText)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        // Mostrar/ocultar contraseña
+        private void TogglePasswordVisibility(object sender, RoutedEventArgs e)
+        {
+            isPasswordVisible = !isPasswordVisible;
+
+            if (isPasswordVisible)
+            {
+                PasswordTextBox.Text = PasswordBox.Password;
+                PasswordBox.Visibility = Visibility.Collapsed;
+                PasswordTextBox.Visibility = Visibility.Visible;
+                TogglePasswordButton.Content = "🙈";
+            }
+            else
+            {
+                PasswordBox.Password = PasswordTextBox.Text;
+                PasswordBox.Visibility = Visibility.Visible;
+                PasswordTextBox.Visibility = Visibility.Collapsed;
+                TogglePasswordButton.Content = "👁️";
+            }
+
+            UpdatePasswordPlaceholder();
+        }
+
+        // Confirmar contraseña: se usa Tag para el binding del placeholder
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             ConfirmPasswordBox.Tag = ConfirmPasswordBox.Password;
         }
+        private bool isConfirmPasswordVisible = false;
 
+        
     }
-
-
-
-
 }

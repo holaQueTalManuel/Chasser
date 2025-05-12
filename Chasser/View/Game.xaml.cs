@@ -31,6 +31,9 @@ namespace Chasser
         public Game(string code, string token, string assignedColor)
         {
             InitializeComponent();
+
+            this.Loaded += Login_Loaded;
+
             gameCode = code;
             playerColor = assignedColor.ToLower().Trim();
             isMyTurn = playerColor == "white";
@@ -42,6 +45,11 @@ namespace Chasser
             UpdateDisplay();
 
             _ = ListenForServerMessagesAsync();
+        }
+
+        private void Login_Loaded(object sender, RoutedEventArgs e)
+        {
+            (Window.GetWindow(this) as MainWindow)?.AjustarTamaño(1100, 600);
         }
 
         private async Task ListenForServerMessagesAsync()

@@ -32,7 +32,14 @@ namespace Chasser
         public Login()
         {
             InitializeComponent();
-            
+            this.Loaded += Login_Loaded;
+
+
+        }
+
+        private void Login_Loaded(object sender, RoutedEventArgs e)
+        {
+            (Window.GetWindow(this) as MainWindow)?.AjustarTamaño(900, 600);
         }
 
         private async void Login_Click(object sender, RoutedEventArgs e)
@@ -83,37 +90,97 @@ namespace Chasser
         {
             NavigationService.Navigate(new Register());
         }
+        // Username
         private void UsernameBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // No necesita lógica, solo fuerza actualización del binding
+            UsernamePlaceholder.Visibility = string.IsNullOrWhiteSpace(UsernameBox.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
+        private void UsernameBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            UsernamePlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void UsernameBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(UsernameBox.Text))
+                UsernamePlaceholder.Visibility = Visibility.Visible;
+        }
+
+        // Password
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            PasswordBox.Tag = PasswordBox.Password;
+            PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordBox.Password)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
+
+        private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            PasswordPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(PasswordBox.Password))
+                PasswordPlaceholder.Visibility = Visibility.Visible;
+        }
+
+        // Para cuando el TextBox muestra la contraseña
+        private void PasswordTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordTextBox.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private void PasswordTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            PasswordPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void PasswordTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(PasswordTextBox.Text))
+                PasswordPlaceholder.Visibility = Visibility.Visible;
+        }
+        private bool isPasswordVisible = false;
+
         private void TogglePasswordVisibility(object sender, RoutedEventArgs e)
         {
-            _isPasswordVisible = !_isPasswordVisible;
+            isPasswordVisible = !isPasswordVisible;
 
-            // Cambiar el tipo de visualización de la contraseña
-            if (_isPasswordVisible)
+            if (isPasswordVisible)
             {
+                // Mostrar la contraseña en texto
+                PasswordTextBox.Text = PasswordBox.Password;
                 PasswordBox.Visibility = Visibility.Collapsed;
                 PasswordTextBox.Visibility = Visibility.Visible;
-                PasswordTextBox.Text = PasswordBox.Password;
+                TogglePasswordButton.Content = "🙈"; // o "Ocultar"
             }
             else
             {
+                // Ocultar la contraseña
+                PasswordBox.Password = PasswordTextBox.Text;
                 PasswordBox.Visibility = Visibility.Visible;
                 PasswordTextBox.Visibility = Visibility.Collapsed;
+                TogglePasswordButton.Content = "👁️"; // o "Mostrar"
             }
-        }
-        private void PasswordTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isPasswordVisible)
+
+            // Mantener visible o no el placeholder
+            if (isPasswordVisible)
             {
-                PasswordBox.Password = PasswordTextBox.Text;
+                PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordTextBox.Text)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+            else
+            {
+                PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordBox.Password)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             }
         }
 

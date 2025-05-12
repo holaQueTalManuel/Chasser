@@ -4,13 +4,30 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Chasser"
+        mc:Ignorable="d"
         Icon="/Imgs/logo.ico"
         WindowStartupLocation="CenterScreen"
-        
-        mc:Ignorable="d"
-        Title="Chasser" Height="600" Width="900">
+        Title="Chasser" 
+        Height="600" 
+        Width="900"
+        MinHeight="500"
+        ResizeMode="NoResize"
+        MinWidth="800"
+        Background="#F8F1DF"  
+    WindowStyle="SingleBorderWindow"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <!-- Estilo para eliminar el borde del Frame -->
+        <Style TargetType="Frame">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+    </Window.Resources>
 
     <Grid>
-        <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden"/>
+        <Frame x:Name="MainFrame" 
+               NavigationUIVisibility="Hidden"
+               Background="Transparent"/>
     </Grid>
 </Window>
