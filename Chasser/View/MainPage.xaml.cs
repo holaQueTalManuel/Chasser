@@ -39,31 +39,17 @@ namespace Chasser
 
             try
             {
-                // Cambiar el tipo de variable a ResponseMessage explícitamente
-                ResponseMessage response =  await TCPClient.SendMessageAsync(request);
-                
+                await TCPClient.SendOnlyMessageAsync(request);
+                var response = await TCPClient.ReceiveMessageAsync(); // ⬅️ IMPORTANTE
 
-                if (response == null)
+                if (response.Status == "START_GAME_SUCCESS")
                 {
-                    MessageBox.Show("No se recibió respuesta del servidor", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                if (response.Status == "START_GAME_SUCCESS" &&
-                    response.Data != null &&
-                    response.Data.TryGetValue("codigo", out string codigo) &&
-                    response.Data.TryGetValue("color", out string color))
-                {
-                    Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
-                    NavigationService.Navigate(new Game(codigo, token, color));
-                }
-                else if (response.Status.StartsWith("START_GAME_FAIL"))
-                {
-                    MessageBox.Show($"Error al crear partida: {response.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    string color = response.Data.GetValueOrDefault("color") ?? "white";
+                    NavigationService.Navigate(new Game("IA", token, color));
                 }
                 else
                 {
-                    MessageBox.Show("Respuesta inesperada del servidor", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("No se pudo iniciar la partida con la IA", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
@@ -72,6 +58,7 @@ namespace Chasser
                 Debug.WriteLine($"Error en Start_Game_IA_Click: {ex}");
             }
         }
+
 
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {
@@ -87,7 +74,7 @@ namespace Chasser
                     };
 
                     // No esperamos respuesta para no bloquear la salida
-                    _ = TCPClient.SendMessageAsync(request);
+                    //_ = TCPClient.SendMessageAsync(request);
                 }
 
                 // Limpiar credenciales

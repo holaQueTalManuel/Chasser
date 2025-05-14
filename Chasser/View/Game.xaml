@@ -49,7 +49,7 @@
                 </Button.Effect>
             </Button>
 
-            <Button Content="Ver Reglas" Margin="5" Padding="10,5"
+            <Button Content="Ver Reglas" Margin="5" Padding="10,5" Click="Rules_Click"
         Background="#5C3317" Foreground="Beige"
         FontWeight="Bold" FontFamily="Georgia" FontSize="16"
         Width="140" BorderBrush="#3A1F0E" BorderThickness="3">

@@ -144,6 +144,7 @@ namespace Chasser.Logic.Network
                 Console.WriteLine($"Turno actual: {gameState.CurrentPlayer}");
 
                 var move = new NormalMove(fromPos, toPos);
+
                 var result = gameState.ExecuteMove(move);
 
                 if (!result.IsValid)
@@ -153,7 +154,15 @@ namespace Chasser.Logic.Network
                     return;
                 }
 
-                await SendJsonAsync(writer, "MOVE_ACCEPTED", "Movimiento aceptado");
+                // Crear un diccionario con las posiciones convertidas a cadenas
+                var moveData2 = new Dictionary<string, string>
+                {
+                    { "fromPos", fromPos.ToString() },
+                    { "toPos", toPos.ToString() }
+                };
+
+                // Enviar respuesta al cliente
+                await SendJsonAsync(writer, "MOVE_ACCEPTED", "Movimiento aceptado", moveData2);
 
                 // Movimiento de IA
                 await MakeAIMove(gameState, writer);
@@ -181,6 +190,7 @@ namespace Chasser.Logic.Network
                             { "toRow", aiMove.ToPos.Row.ToString() },
                             { "toCol", aiMove.ToPos.Column.ToString() }
                         });
+                    Console.WriteLine("Esperando que el cliente lea el AI_MOVE...");
 
                     if (result.GameOver)
                     {

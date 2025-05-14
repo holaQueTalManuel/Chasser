@@ -109,22 +109,42 @@ namespace Chasser.Common.Logic.Board
             Piece capturedPiece = Board[move.ToPos];
             move.Execute(Board);
 
+            Console.WriteLine($"MOVIMIENTO EJECUTADO METODO: EXECUTEMOVE");
             if (capturedPiece != null)
             {
                 eliminations[CurrentPlayer]++;
+                Console.WriteLine($"[{CurrentPlayer}] ha capturado una pieza. Total eliminadas: {eliminations[CurrentPlayer]}");
             }
 
             CurrentPlayer = CurrentPlayer.Opponent();
+            Console.WriteLine($"Turno cambiado. Ahora juega: {CurrentPlayer}");
+
             CheckGameEndConditions();
+            Console.WriteLine("Condiciones de fin de juego comprobadas.");
 
             string reason = null;
             if (IsGameOver())
             {
-                if (Result.IsDraw) reason = "Draw";
-                else if (Result.VictoryType.HasValue) reason = Result.VictoryType.ToString();
+                Console.WriteLine("¡El juego ha terminado!");
+
+                if (Result.IsDraw)
+                {
+                    reason = "Draw";
+                    Console.WriteLine("Resultado: Empate.");
+                }
+                else if (Result.VictoryType.HasValue)
+                {
+                    reason = Result.VictoryType.ToString();
+                    Console.WriteLine($"Resultado: Victoria por {reason}");
+                }
+
+                if (Result?.Winner != null)
+                {
+                    Console.WriteLine($"Ganador: {Result.Winner}");
+                }
             }
 
-            return MoveResult.CreateValidResult(
+            var result = MoveResult.CreateValidResult(
                 capturedPiece: capturedPiece,
                 gameOver: IsGameOver(),
                 winner: Result?.Winner,
@@ -132,6 +152,15 @@ namespace Chasser.Common.Logic.Board
                 duration: IsGameOver() ? DateTime.UtcNow - StartTime : null,
                 reason: reason
             );
+
+            Console.WriteLine($"Resultado del movimiento: " +
+                $"capturedPiece={capturedPiece != null}, " +
+                $"gameOver={result.GameOver}, " +
+                $"winner={result.Winner}, " +
+                $"currentPlayer={result.CurrentPlayer}, ");
+
+            return result;
+
         }
 
         //public IEnumerable<Move> GetAllMoves(Player color)

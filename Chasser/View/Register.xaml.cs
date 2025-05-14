@@ -53,7 +53,8 @@ namespace Chasser
 
                     try
                     {
-                        var response = await TCPClient.SendMessageAsync(request);
+                         await TCPClient.SendOnlyMessageAsync(request);
+                        var response = await TCPClient.ReceiveMessageAsync();
 
                         if (response.Status == "REGISTER_SUCCESS")
                         {

@@ -218,12 +218,12 @@ public class GameSession
             {
                 Status = "MOVE_ACCEPTED",
                 Data = new Dictionary<string, string>
-            {
-                {"fromRow", move.FromPos.Row.ToString()},
-                {"fromCol", move.FromPos.Column.ToString()},
-                {"toRow", move.ToPos.Row.ToString()},
-                {"toCol", move.ToPos.Column.ToString()}
-            }
+                {
+                    {"fromRow", move.FromPos.Row.ToString()},
+                    {"fromCol", move.FromPos.Column.ToString()},
+                    {"toRow", move.ToPos.Row.ToString()},
+                    {"toCol", move.ToPos.Column.ToString()}
+                }
             };
             await opponentWriter.WriteLineAsync(JsonSerializer.Serialize(response));
 
@@ -248,12 +248,12 @@ public class GameSession
                         {
                             Status = "OPPONENT_MOVE",
                             Data = new Dictionary<string, string>
-                        {
-                            {"fromRow", aiMove.FromPos.Row.ToString()},
-                            {"fromCol", aiMove.FromPos.Column.ToString()},
-                            {"toRow", aiMove.ToPos.Row.ToString()},
-                            {"toCol", aiMove.ToPos.Column.ToString()}
-                        }
+                            {
+                                {"fromRow", aiMove.FromPos.Row.ToString()},
+                                {"fromCol", aiMove.FromPos.Column.ToString()},
+                                {"toRow", aiMove.ToPos.Row.ToString()},
+                                {"toCol", aiMove.ToPos.Column.ToString()}
+                            }
                         };
                         await opponentWriter.WriteLineAsync(JsonSerializer.Serialize(aiResponse));
                     }

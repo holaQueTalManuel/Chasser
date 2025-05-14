@@ -57,9 +57,9 @@
                          />
 
                 <!-- Botón para continuar -->
-                <Button Content="Unirse a partida"
+                <!--<Button Content="Unirse a partida"
                         Style="{StaticResource MainButtonStyle}"
-                        Click="JoinGame_Click"/>
+                        Click="JoinGame_Click"/>-->
 
                 <!-- Mensaje de error (opcional, inicialmente oculto) -->
                 <TextBlock x:Name="ErrorMessage"

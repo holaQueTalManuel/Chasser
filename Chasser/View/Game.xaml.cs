@@ -10,6 +10,7 @@ using System.Windows.Shapes;
 using Chasser.Common.Logic.Board;
 using Chasser.Common.Logic.Moves;
 using Chasser.Common.Network;
+using Chasser.Logic;
 using Chasser.Logic.Network;
 using Chasser.Utilities;
 using Chasser.View;
@@ -56,10 +57,20 @@ namespace Chasser
         {
             try
             {
-                while (TCPClient.IsConnected)
+                while (true)
                 {
                     var response = await TCPClient.ReceiveMessageAsync();
-                    Application.Current.Dispatcher.Invoke(() => ProcessServerResponse(response));
+                    if (response == null)
+                    {
+                        Debug.WriteLine("Respuesta nula recibida. Posible desconexión.");
+                        ShowDisconnectMessage();
+                        break;
+                    }
+
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        ProcessServerResponse(response);
+                    });
                 }
             }
             catch (Exception ex)
@@ -69,57 +80,121 @@ namespace Chasser
             }
         }
 
+
         private void ProcessServerResponse(ResponseMessage response)
         {
-            Debug.WriteLine($"Procesando respuesta: {response.Status}");
+            if (response == null) return;
 
+            switch (response.Status)
+            {
+                case "START_GAME_SUCCESS":
+                    if (response.Data != null &&
+                        response.Data.TryGetValue("codigo", out string codigo) &&
+                        response.Data.TryGetValue("color", out string color))
+                    {
+                        Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
+                        // Aquí haces la navegación desde el hilo principal
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color));
+                        });
+                    }
+                    break;
+
+                case "START_GAME_FAIL":
+                case string fail when fail.StartsWith("START_GAME_FAIL"):
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"Error al crear partida: {response.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                    break;
+
+                case "MOVE_ACCEPTED":
+                    if (response.Data != null &&
+                        int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
+                        int.TryParse(response.Data.GetValueOrDefault("fromCol"), out int fromCol) &&
+                        int.TryParse(response.Data.GetValueOrDefault("toRow"), out int toRow) &&
+                        int.TryParse(response.Data.GetValueOrDefault("toCol"), out int toCol))
+                    {
+                        var from = new Position(fromRow, fromCol);
+                        var to = new Position(toRow, toCol);
+                        MovePieceOnClient(from, to);
+                    }
+                    else
+                    {
+                        ProcessInvalidMove("Movimiento inválido");
+                    }
+                    ProcessMoveAccepted(); // tu método ya existente
+                    break;
+
+                case "AI_MOVE":
+                    ProcessAIMove(response); // tu método ya existente
+                    break;
+
+                // Puedes agregar más casos según el protocolo
+                default:
+                    Debug.WriteLine($"Respuesta desconocida del servidor: {response.Status}");
+                    break;
+            }
+        }
+        private void ProcessAIMove(ResponseMessage response)
+        {
+            if (response.Data != null &&
+                int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
+                int.TryParse(response.Data.GetValueOrDefault("fromCol"), out int fromCol) &&
+                int.TryParse(response.Data.GetValueOrDefault("toRow"), out int toRow) &&
+                int.TryParse(response.Data.GetValueOrDefault("toCol"), out int toCol))
+            {
+                var from = new Position(fromRow, fromCol);
+                var to = new Position(toRow, toCol);
+
+                MovePieceOnClient(from, to);
+            }
+        }
+
+        private void MovePieceOnClient(Position from, Position to)
+        {
+            var piece = gameState.Board[from];
+
+            if (piece == null)
+            {
+                Debug.WriteLine("No hay pieza en la posición de origen.");
+                return;
+            }
+
+            gameState.Board[to] = piece;
+            gameState.Board[from] = null;
+
+            DrawBoard(); // Redibuja el tablero en pantalla
+        }
+
+
+
+
+        private async void ProcessMoveAccepted()
+        {
             try
             {
+                Debug.WriteLine("Esperando AI_MOVE del servidor...");
+                var response = await TCPClient.ReceiveMessageAsync();
+
+                Debug.WriteLine($"Respuesta recibida: {response.Status}");
                 switch (response.Status)
                 {
-                    case "OPPONENT_MOVE":
-                        ProcessOpponentMove(response.Data);
-                        break;
-                    case "MOVE_ACCEPTED":
-                        ProcessMoveAccepted();
-                        break;
-                    case "MOVE_INVALID":
-                        ProcessInvalidMove(response.Message);
-                        break;
-                    case "GAME_OVER":
-                        ProcessGameOver(response);
-                        break;
-                    case "OPPONENT_DISCONNECTED":
-                        ProcessOpponentDisconnected();
+                    case "AI_MOVE":
+                        UpdateDisplay();
                         break;
                     default:
-                        Debug.WriteLine($"Respuesta no manejada: {response.Status}");
+                        Debug.WriteLine($"Respuesta no manejada en ProcessMoveAccepted: {response.Status}");
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error procesando respuesta: {ex}");
+                Debug.WriteLine($"Error en ProcessMoveAccepted: {ex}");
             }
         }
 
-        private void ProcessOpponentMove(Dictionary<string, string> moveData)
-        {
-            var move = new NormalMove(
-                new Position(int.Parse(moveData["fromRow"]), int.Parse(moveData["fromCol"])),
-                new Position(int.Parse(moveData["toRow"]), int.Parse(moveData["toCol"]))
-            );
-
-            gameState.ExecuteMove(move);
-            isMyTurn = true;
-            UpdateDisplay();
-        }
-
-        private void ProcessMoveAccepted()
-        {
-            // Actualizaciones adicionales si son necesarias
-            UpdateDisplay();
-        }
 
         private void ProcessInvalidMove(string message)
         {
@@ -248,15 +323,16 @@ namespace Chasser
                 {
                     Command = "GAME_ACTION_MOVE",
                     Data = new Dictionary<string, string>
-                {
-                    { "fromRow", move.FromPos.Row.ToString() },
-                    { "fromCol", move.FromPos.Column.ToString() },
-                    { "toRow", move.ToPos.Row.ToString() },
-                    { "toCol", move.ToPos.Column.ToString() }
-                }
+                    {
+                        { "fromRow", move.FromPos.Row.ToString() },
+                        { "fromCol", move.FromPos.Column.ToString() },
+                        { "toRow", move.ToPos.Row.ToString() },
+                        { "toCol", move.ToPos.Column.ToString() }
+                    }
                 };
 
-                await TCPClient.SendMessageAsync(request);
+                await TCPClient.SendOnlyMessageAsync(request);
+                Debug.WriteLine($"MENSAJE CON LOS MOVIMIENTOS MANDADOS AL SERVIDOR");
             }
             catch (Exception ex)
             {
@@ -272,37 +348,7 @@ namespace Chasser
             }
         }
 
-        private async void HandleMove(Move move)
-        {
-            Debug.WriteLine($"Enviando movimiento: {move.FromPos} a {move.ToPos}");
-
-            var request = new RequestMessage
-            {
-                Command = "GAME_ACTION_MOVE",
-                Data = new Dictionary<string, string>
-                {
-                    { "fromRow", move.FromPos.Row.ToString() },
-                    { "fromCol", move.FromPos.Column.ToString() },
-                    { "toRow", move.ToPos.Row.ToString() },
-                    { "toCol", move.ToPos.Column.ToString() }
-                }
-            };
-
-            try
-            {
-                isMyTurn = false;
-                UpdateTurnIndicator();
-
-                await TCPClient.SendMessageAsync(request);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error al enviar movimiento: {ex}");
-                isMyTurn = true;
-                UpdateTurnIndicator();
-                MessageBox.Show("Error al enviar movimiento", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        
 
         private Position ToSquarePosition(Point point)
         {
