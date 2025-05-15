@@ -47,7 +47,23 @@ namespace Chasser.Common.Logic.Board
         {
             return EqualityComparer<Position>.Default.Equals(left, right);
         }
+        public static bool TryParse(string input, out Position pos)
+        {
+            pos = null;
+            if (string.IsNullOrWhiteSpace(input)) return false;
 
+            var cleaned = input.Trim('(', ')');
+            var parts = cleaned.Split(',');
+            if (parts.Length == 2 &&
+                int.TryParse(parts[0], out int row) &&
+                int.TryParse(parts[1], out int col))
+            {
+                pos = new Position(row, col);
+                return true;
+            }
+
+            return false;
+        }
         public static bool operator !=(Position? left, Position? right)
         {
             return !(left == right);

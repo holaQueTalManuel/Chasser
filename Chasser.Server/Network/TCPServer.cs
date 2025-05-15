@@ -154,6 +154,16 @@ namespace Chasser.Logic.Network
                     return;
                 }
 
+                if(result.GameOver)
+                {
+                    await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
+                        new Dictionary<string, string>
+                        {
+                            { "winner", result.Winner?.ToString() ?? "draw" }
+                        });
+                    return;
+                }
+
                 // Crear un diccionario con las posiciones convertidas a cadenas
                 var moveData2 = new Dictionary<string, string>
                 {

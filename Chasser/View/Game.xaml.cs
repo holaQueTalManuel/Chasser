@@ -24,6 +24,7 @@ namespace Chasser
         private readonly Image[,] pieceImages = new Image[7, 7];
         private readonly Rectangle[,] highlights = new Rectangle[7, 7];
         private readonly Dictionary<Position, Move> moveCache = new Dictionary<Position, Move>();
+        private List<Position> possibleMoves = new();
 
         private Position selectedPos = null;
         private string playerColor;
@@ -111,24 +112,25 @@ namespace Chasser
 
                 case "MOVE_ACCEPTED":
                     if (response.Data != null &&
-                        int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
-                        int.TryParse(response.Data.GetValueOrDefault("fromCol"), out int fromCol) &&
-                        int.TryParse(response.Data.GetValueOrDefault("toRow"), out int toRow) &&
-                        int.TryParse(response.Data.GetValueOrDefault("toCol"), out int toCol))
+                        Position.TryParse(response.Data.GetValueOrDefault("fromPos"), out var from) &&
+                        Position.TryParse(response.Data.GetValueOrDefault("toPos"), out var to))
                     {
-                        var from = new Position(fromRow, fromCol);
-                        var to = new Position(toRow, toCol);
                         MovePieceOnClient(from, to);
+                        UpdateDisplay(); // <--- para que se vea el nuevo estado del tablero
+                        ProcessMoveAccepted(); // tu método ya existente
                     }
                     else
                     {
                         ProcessInvalidMove("Movimiento inválido");
                     }
-                    ProcessMoveAccepted(); // tu método ya existente
+                    
                     break;
 
                 case "AI_MOVE":
                     ProcessAIMove(response); // tu método ya existente
+                    break;
+                case "GAME_OVER":
+                    ProcessGameOver(response);
                     break;
 
                 // Puedes agregar más casos según el protocolo
@@ -137,6 +139,8 @@ namespace Chasser
                     break;
             }
         }
+
+
         private void ProcessAIMove(ResponseMessage response)
         {
             if (response.Data != null &&
@@ -166,6 +170,7 @@ namespace Chasser
             gameState.Board[from] = null;
 
             DrawBoard(); // Redibuja el tablero en pantalla
+            UpdateTurnIndicator();
         }
 
 
@@ -182,8 +187,26 @@ namespace Chasser
                 switch (response.Status)
                 {
                     case "AI_MOVE":
-                        UpdateDisplay();
+                        if (response.Data != null &&
+                            int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
+                            int.TryParse(response.Data.GetValueOrDefault("fromCol"), out int fromCol) &&
+                            int.TryParse(response.Data.GetValueOrDefault("toRow"), out int toRow) &&
+                            int.TryParse(response.Data.GetValueOrDefault("toCol"), out int toCol))
+                        {
+                            var from = new Position(fromRow, fromCol);
+                            var to = new Position(toRow, toCol);
+                            MovePieceOnClient(from, to);
+                            
+
+                            isMyTurn = true;
+                            UpdateTurnIndicator();
+                        }
+                        else
+                        {
+                            Debug.WriteLine("Datos inválidos en AI_MOVE");
+                        }
                         break;
+
                     default:
                         Debug.WriteLine($"Respuesta no manejada en ProcessMoveAccepted: {response.Status}");
                         break;
@@ -194,6 +217,8 @@ namespace Chasser
                 Debug.WriteLine($"Error en ProcessMoveAccepted: {ex}");
             }
         }
+
+
 
 
         private void ProcessInvalidMove(string message)
@@ -293,6 +318,7 @@ namespace Chasser
                 TryMakeMove(pos);
             }
         }
+
 
         private void SelectPiece(Position pos)
         {
