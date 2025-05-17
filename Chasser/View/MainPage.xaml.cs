@@ -44,8 +44,25 @@ namespace Chasser
 
                 if (response.Status == "START_GAME_SUCCESS")
                 {
-                    string color = response.Data.GetValueOrDefault("color") ?? "white";
-                    NavigationService.Navigate(new Game("IA", token, color));
+                    if (response.Data != null &&
+                        response.Data.TryGetValue("codigo", out string codigo) &&
+                        response.Data.TryGetValue("color", out string color) &&
+                        response.Data.TryGetValue("nombreUsuario", out string user)
+
+                        )
+                    {
+
+
+                        Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
+                        response.Data.TryGetValue("partidasGanadas", out string partidasGanadas);
+                        response.Data.TryGetValue("racha", out string racha);
+
+                        // Aquí haces la navegación desde el hilo principal
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color,user, partidasGanadas, racha));
+                        });
+                    }
                 }
                 else
                 {

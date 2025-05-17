@@ -63,33 +63,33 @@
                 <!-- Correo -->
                 <Grid>
                     <TextBox x:Name="EmailBox"
-             Style="{StaticResource TextBoxStyle}"
-             TextChanged="EmailBox_TextChanged"
-             GotFocus="EmailBox_GotFocus"
-             LostFocus="EmailBox_LostFocus"/>
+                             Style="{StaticResource TextBoxStyle}"
+                             TextChanged="EmailBox_TextChanged"
+                             GotFocus="EmailBox_GotFocus"
+                             LostFocus="EmailBox_LostFocus"/>
                     <TextBlock x:Name="EmailPlaceholder"
-               Text="Correo electrónico"
-               Foreground="Gray"
-               Margin="14,0,0,0"
-               VerticalAlignment="Center"
-               IsHitTestVisible="False"
-               Visibility="Visible"/>
+                               Text="Correo electrónico"
+                               Foreground="Gray"
+                               Margin="14,0,0,0"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Visibility="Visible"/>
                 </Grid>
 
                 <!-- Usuario -->
                 <Grid>
                     <TextBox x:Name="UsernameBox"
-             Style="{StaticResource TextBoxStyle}"
-             TextChanged="UsernameBox_TextChanged"
-             GotFocus="UsernameBox_GotFocus"
-             LostFocus="UsernameBox_LostFocus"/>
+                             Style="{StaticResource TextBoxStyle}"
+                             TextChanged="UsernameBox_TextChanged"
+                             GotFocus="UsernameBox_GotFocus"
+                             LostFocus="UsernameBox_LostFocus"/>
                     <TextBlock x:Name="UsernamePlaceholder"
-               Text="Nombre de usuario"
-               Foreground="Gray"
-               Margin="14,0,0,0"
-               VerticalAlignment="Center"
-               IsHitTestVisible="False"
-               Visibility="Visible"/>
+                               Text="Nombre de usuario"
+                               Foreground="Gray"
+                               Margin="14,0,0,0"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Visibility="Visible"/>
                 </Grid>
 
                 <!-- Contraseña -->
@@ -98,19 +98,16 @@
                                  Style="{StaticResource PasswordBoxStyle}"
                                  PasswordChanged="PasswordBox_PasswordChanged"
                                  Visibility="Visible"/>
-
                     <TextBox x:Name="PasswordTextBox"
                              Style="{StaticResource TextBoxStyle}"
                              Visibility="Collapsed"
                              TextChanged="PasswordTextBox_TextChanged"/>
-
                     <TextBlock x:Name="PasswordPlaceholder"
                                Text="Contraseña"
                                Foreground="Gray"
                                Margin="14,0,0,0"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"/>
-
                     <Button x:Name="TogglePasswordButton"
                             Content="👁️"
                             HorizontalAlignment="Right"
@@ -120,6 +117,7 @@
                             BorderBrush="Transparent"
                             Margin="0,0,10,0"
                             FontSize="20"
+                            Tag="Password"
                             Cursor="Hand"
                             Click="TogglePasswordVisibility"/>
                 </Grid>
@@ -127,25 +125,34 @@
                 <!-- Confirmar Contraseña -->
                 <Grid>
                     <PasswordBox x:Name="ConfirmPasswordBox"
-                                 Style="{StaticResource PasswordBoxStyle}"
-                                 PasswordChanged="ConfirmPasswordBox_PasswordChanged"/>
-                    <TextBlock Text="Confirmar contraseña"
-                               Foreground="Gray"
-                               Margin="14,0,0,0"
-                               VerticalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Visibility="{Binding Tag, ElementName=ConfirmPasswordBox}"/>
+                 Style="{StaticResource PasswordBoxStyle}"
+                 PasswordChanged="ConfirmPasswordBox_PasswordChanged"
+                 Visibility="Visible"/>
+
+                    <TextBox x:Name="ConfirmPasswordTextBox"
+             Style="{StaticResource TextBoxStyle}"
+             Visibility="Collapsed"
+             TextChanged="ConfirmPasswordTextBox_TextChanged"/>
+
+                    <TextBlock x:Name="ConfirmPasswordPlaceholder"
+               Text="Confirmar contraseña"
+               Foreground="Gray"
+               Margin="14,0,0,0"
+               VerticalAlignment="Center"
+               IsHitTestVisible="False"/>
+
                     <Button x:Name="TogglePasswordButtonConfirm"
-                        Content="👁️"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Width="30" Height="30"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Margin="0,0,10,0"
-                        FontSize="20"
-                        Cursor="Hand"
-                        Click="TogglePasswordVisibility"/>
+            Content="👁️"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Width="30" Height="30"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            Margin="0,0,10,0"
+            FontSize="20"
+            Tag="ConfirmPassword"
+            Cursor="Hand"
+            Click="TogglePasswordVisibility"/>
                 </Grid>
 
                 <!-- Botón -->

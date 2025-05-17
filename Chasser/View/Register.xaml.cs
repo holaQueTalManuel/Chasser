@@ -8,12 +8,10 @@ using Chasser.Logic.Network;
 
 namespace Chasser
 {
-    /// <summary>
-    /// Lógica de interacción para Register.xaml
-    /// </summary>
     public partial class Register : Page
     {
         private bool isPasswordVisible = false;
+        private bool isConfirmPasswordVisible = false;
 
         public Register()
         {
@@ -53,7 +51,7 @@ namespace Chasser
 
                     try
                     {
-                         await TCPClient.SendOnlyMessageAsync(request);
+                        await TCPClient.SendOnlyMessageAsync(request);
                         var response = await TCPClient.ReceiveMessageAsync();
 
                         if (response.Status == "REGISTER_SUCCESS")
@@ -99,7 +97,6 @@ namespace Chasser
                 EmailPlaceholder.Visibility = Visibility.Visible;
         }
 
-        // Placeholder para nombre de usuario
         private void UsernameBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             UsernamePlaceholder.Visibility = string.IsNullOrWhiteSpace(UsernameBox.Text)
@@ -118,7 +115,6 @@ namespace Chasser
                 UsernamePlaceholder.Visibility = Visibility.Visible;
         }
 
-        // Placeholder para contraseña
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             UpdatePasswordPlaceholder();
@@ -157,36 +153,93 @@ namespace Chasser
                 : Visibility.Collapsed;
         }
 
-        // Mostrar/ocultar contraseña
+        private void UpdateConfirmPasswordPlaceholder()
+        {
+            string passwordText = isConfirmPasswordVisible ? ConfirmPasswordTextBox.Text : ConfirmPasswordBox.Password;
+            ConfirmPasswordPlaceholder.Visibility = string.IsNullOrEmpty(passwordText)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
         private void TogglePasswordVisibility(object sender, RoutedEventArgs e)
         {
-            isPasswordVisible = !isPasswordVisible;
+            var button = (Button)sender;
+            string target = button.Tag.ToString();
 
-            if (isPasswordVisible)
+            if (target == "Password")
             {
-                PasswordTextBox.Text = PasswordBox.Password;
-                PasswordBox.Visibility = Visibility.Collapsed;
-                PasswordTextBox.Visibility = Visibility.Visible;
-                TogglePasswordButton.Content = "🙈";
+                isPasswordVisible = !isPasswordVisible;
+                ToggleVisibility(
+                    PasswordBox,
+                    PasswordTextBox,
+                    isPasswordVisible,
+                    button
+                );
+                UpdatePasswordPlaceholder();
+            }
+            else if (target == "ConfirmPassword")
+            {
+                isConfirmPasswordVisible = !isConfirmPasswordVisible;
+                ToggleVisibility(
+                    ConfirmPasswordBox,
+                    ConfirmPasswordTextBox,
+                    isConfirmPasswordVisible,
+                    button
+                );
+                UpdateConfirmPasswordPlaceholder();
+            }
+        }
+
+        private void ToggleVisibility(
+            PasswordBox passwordBox,
+            TextBox textBox,
+            bool isVisible,
+            Button button)
+        {
+            if (isVisible)
+            {
+                textBox.Text = passwordBox.Password;
+                passwordBox.Visibility = Visibility.Collapsed;
+                textBox.Visibility = Visibility.Visible;
+                button.Content = "🙈";
             }
             else
             {
-                PasswordBox.Password = PasswordTextBox.Text;
-                PasswordBox.Visibility = Visibility.Visible;
-                PasswordTextBox.Visibility = Visibility.Collapsed;
-                TogglePasswordButton.Content = "👁️";
+                passwordBox.Password = textBox.Text;
+                passwordBox.Visibility = Visibility.Visible;
+                textBox.Visibility = Visibility.Collapsed;
+                button.Content = "👁️";
             }
-
-            UpdatePasswordPlaceholder();
         }
 
-        // Confirmar contraseña: se usa Tag para el binding del placeholder
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            ConfirmPasswordBox.Tag = ConfirmPasswordBox.Password;
+            UpdateConfirmPasswordPlaceholder();
         }
-        private bool isConfirmPasswordVisible = false;
 
-        
+        private void ConfirmPasswordTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateConfirmPasswordPlaceholder();
+        }
+
+        private void ConfirmPasswordBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            ConfirmPasswordPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void ConfirmPasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            UpdateConfirmPasswordPlaceholder();
+        }
+
+        private void ConfirmPasswordTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            ConfirmPasswordPlaceholder.Visibility = Visibility.Collapsed;
+        }
+
+        private void ConfirmPasswordTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            UpdateConfirmPasswordPlaceholder();
+        }
     }
 }

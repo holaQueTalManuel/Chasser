@@ -95,7 +95,7 @@ namespace Chasser.Logic.Network
                         case "GAME_ACTION_MOVE":
                             if (activeAIGames.TryGetValue(client, out var gameState))
                             {
-                                await ProcessPlayerMove(msg.Data, gameState, writer);
+                                await ProcessPlayerMove(msg.Data, gameState, writer, client);
                             }
                             else
                             {
@@ -115,12 +115,13 @@ namespace Chasser.Logic.Network
             finally
             {
                 activeAIGames.Remove(client);
+                client.Close();
                 client.Dispose();
                 Console.WriteLine("Cliente desconectado y recursos liberados.");
             }
         }
 
-        private async Task ProcessPlayerMove(Dictionary<string, string> moveData, GameState gameState, StreamWriter writer)
+        private async Task ProcessPlayerMove(Dictionary<string, string> moveData, GameState gameState, StreamWriter writer, TcpClient client)
         {
             try
             {
@@ -154,13 +155,20 @@ namespace Chasser.Logic.Network
                     return;
                 }
 
-                if(result.GameOver)
+                if (result.GameOver)
                 {
                     await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
                         new Dictionary<string, string>
                         {
-                            { "winner", result.Winner?.ToString() ?? "draw" }
+                            { "winner", result.Winner?.ToString() ?? "draw" },
+                            { "fromRow", move.FromPos.Row.ToString() },
+                            { "fromCol", move.FromPos.Column.ToString() },
+                            { "toRow", move.ToPos.Row.ToString() },
+                            { "toCol", move.ToPos.Column.ToString() }
                         });
+                    Console.WriteLine($"GANADOR: {result.Winner.ToString()}, JUGADOR ACTUAL: {gameState.CurrentPlayer.Opponent().ToString()}");
+                    await UpdateDatabaseGameOver(user, result.Winner.ToString(), gameState.CurrentPlayer.Opponent().ToString());
+                    activeAIGames.Remove(client); // Solo se borra la partida, no la conexión ni el cliente
                     return;
                 }
 
@@ -175,7 +183,11 @@ namespace Chasser.Logic.Network
                 await SendJsonAsync(writer, "MOVE_ACCEPTED", "Movimiento aceptado", moveData2);
 
                 // Movimiento de IA
-                await MakeAIMove(gameState, writer);
+                if (!result.GameOver)
+                {
+                    
+                    await MakeAIMove(gameState, writer);
+                }
             }
             catch (Exception ex)
             {
@@ -190,6 +202,22 @@ namespace Chasser.Logic.Network
             if (aiMove != null)
             {
                 var result = gameState.ExecuteMove(aiMove);
+
+                if (result.GameOver)
+                {
+                    Console.WriteLine($"DESDE EL SERVER: GANADOR: {result.Winner.ToString}");
+                    await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
+                        new Dictionary<string, string>
+                        {
+                                { "winner", result.Winner?.ToString() ?? "draw" },
+                                { "fromRow", aiMove.FromPos.Row.ToString() },
+                            { "fromCol", aiMove.FromPos.Column.ToString() },
+                            { "toRow", aiMove.ToPos.Row.ToString() },
+                            { "toCol", aiMove.ToPos.Column.ToString() }
+                        });
+                    return;
+                }
+
                 if (result.IsValid)
                 {
                     await SendJsonAsync(writer, "AI_MOVE", "Movimiento de IA",
@@ -202,14 +230,7 @@ namespace Chasser.Logic.Network
                         });
                     Console.WriteLine("Esperando que el cliente lea el AI_MOVE...");
 
-                    if (result.GameOver)
-                    {
-                        await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
-                            new Dictionary<string, string>
-                            {
-                                { "winner", result.Winner?.ToString() ?? "draw" }
-                            });
-                    }
+                    
                 }
             }
         }
@@ -235,6 +256,47 @@ namespace Chasser.Logic.Network
             });
             await _context.SaveChangesAsync();
         }
+
+        private async Task UpdateDatabaseGameOver(Usuario user, string winner, string playerColor)
+        {
+            Console.WriteLine("Entrando en UpdateDatabaseGameOver");
+
+            if (user == null)
+            {
+                Debug.WriteLine("Usuario es null. No se puede actualizar.");
+                return;
+            }
+            user.Partidas_Ganadas ??= 0;
+
+            Console.WriteLine($"Usuario antes de actualizar: {user.Nombre}, Partidas_Ganadas: {user.Partidas_Ganadas}, Racha_Victorias: {user.Racha_Victorias}");
+            Console.WriteLine($"Ganador: {winner}");
+
+            if (winner == playerColor)
+            {
+                user.Partidas_Ganadas++;
+                user.Racha_Victorias++;
+                Console.WriteLine("El jugador ha ganado. Incrementando estadísticas.");
+            }
+            else
+            {
+                user.Racha_Victorias = 0;
+                Console.WriteLine("El jugador ha perdido. Reiniciando racha de victorias.");
+            }
+
+            try
+            {
+                _context.Usuarios.Update(user);
+                await _context.SaveChangesAsync();
+                Console.WriteLine("Datos guardados correctamente en la base de datos.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al guardar en la base de datos: {ex.Message}");
+            }
+
+            Console.WriteLine($"Usuario después de actualizar: {user.Nombre}, Partidas_Ganadas: {user.Partidas_Ganadas}, Racha_Victorias: {user.Racha_Victorias}");
+        }
+
 
         private Move GenerateAIMove(GameState gameState)
         {
@@ -291,7 +353,10 @@ namespace Chasser.Logic.Network
                     {
                         { "color", "white" },
                         { "codigo", gameCode },
-                        { "oponente", "IA" }
+                        { "oponente", "IA" },
+                        { "nombreUsuario", user.Nombre },
+                        { "partidasGanadas", user.Partidas_Ganadas.ToString() },
+                        { "racha", user.Racha_Victorias.ToString() }
                     });
 
                 Console.WriteLine($"Partida contra IA iniciada para {user.Nombre}");
@@ -303,7 +368,7 @@ namespace Chasser.Logic.Network
                 activeAIGames.Remove(client);
             }
         }
-        
+
 
         private async Task NotifyOpponentDisconnection(TcpClient opponent)
         {
@@ -321,10 +386,10 @@ namespace Chasser.Logic.Network
 
 
 
-        
 
 
-    
+
+
 
 
         private async Task<int?> GetUserFromTokenAsync(string token)
@@ -369,7 +434,7 @@ namespace Chasser.Logic.Network
                 await SendJsonAsync(writer, "LOGOUT_SUCCESS", "Sesión cerrada correctamente");
             }
         }
-        
+
 
         private string GenerateCod()
         {

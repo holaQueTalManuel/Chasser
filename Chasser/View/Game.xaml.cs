@@ -29,8 +29,9 @@ namespace Chasser
         private Position selectedPos = null;
         private string playerColor;
         private bool isMyTurn;
+        private DateTime _lastClickTime;
 
-        public Game(string code, string token, string assignedColor)
+        public Game(string code, string token, string assignedColor, string userName, string partidasGanadas, string racha)
         {
             InitializeComponent();
 
@@ -39,6 +40,11 @@ namespace Chasser
             gameCode = code;
             playerColor = assignedColor.ToLower().Trim();
             isMyTurn = playerColor == "white";
+
+            nameBlock.Text = userName;
+            gamesBlock.Text = $"Partidas ganadas: {partidasGanadas}";
+            streakBlock.Text = $"Racha de victorias: {racha}";
+            gameCodeBlock.Text = $"Código de la partida: {gameCode}";
 
             Debug.WriteLine($"Iniciando juego - Código: {gameCode}, Color: {playerColor}, Mi turno: {isMyTurn}");
 
@@ -51,7 +57,7 @@ namespace Chasser
 
         private void Login_Loaded(object sender, RoutedEventArgs e)
         {
-            (Window.GetWindow(this) as MainWindow)?.AjustarTamaño(1100, 600);
+            (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(1100, 600);
         }
 
         private async Task ListenForServerMessagesAsync()
@@ -88,19 +94,31 @@ namespace Chasser
 
             switch (response.Status)
             {
-                case "START_GAME_SUCCESS":
-                    if (response.Data != null &&
-                        response.Data.TryGetValue("codigo", out string codigo) &&
-                        response.Data.TryGetValue("color", out string color))
-                    {
-                        Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
-                        // Aquí haces la navegación desde el hilo principal
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color));
-                        });
-                    }
-                    break;
+                //case "START_GAME_SUCCESS":
+                //    if (response.Data != null &&
+                //        response.Data.TryGetValue("codigo", out string codigo) &&
+                //        response.Data.TryGetValue("color", out string color) &&
+                //        response.Data.TryGetValue("nombreUsuario", out string user)
+                        
+                //        ) 
+                //    {
+
+
+                //        Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
+                //        response.Data.TryGetValue("partidasGanadas", out string partidasGanadas);
+                //        response.Data.TryGetValue("racha", out string racha);
+
+                //        nameBlock.Text = user;
+                //        gamesBlock.Text = $"Partidas ganadas: {partidasGanadas}";
+                //        streakBlock.Text = $"Racha de victorias: {racha}";
+
+                //        // Aquí haces la navegación desde el hilo principal
+                //        Application.Current.Dispatcher.Invoke(() =>
+                //        {
+                //            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color));
+                //        });
+                //    }
+                //    break;
 
                 case "START_GAME_FAIL":
                 case string fail when fail.StartsWith("START_GAME_FAIL"):
@@ -130,7 +148,24 @@ namespace Chasser
                     ProcessAIMove(response); // tu método ya existente
                     break;
                 case "GAME_OVER":
-                    ProcessGameOver(response);
+                    if (response.Data != null &&
+                int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
+                int.TryParse(response.Data.GetValueOrDefault("fromCol"), out int fromCol) &&
+                int.TryParse(response.Data.GetValueOrDefault("toRow"), out int toRow) &&
+                int.TryParse(response.Data.GetValueOrDefault("toCol"), out int toCol))
+                    {
+                        var fromA = new Position(fromRow, fromCol);
+                        var toB = new Position(toRow, toCol);
+
+                        MovePieceOnClient(fromA, toB);
+                        UpdateDisplay(); // <--- para que se vea el nuevo estado del tablero
+                        turnBlock.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        ProcessInvalidMove("Movimiento inválido");
+                    }
+                        ProcessGameOver(response);
                     break;
 
                 // Puedes agregar más casos según el protocolo
@@ -231,14 +266,39 @@ namespace Chasser
         private void ProcessGameOver(ResponseMessage response)
         {
             string message = response.Message;
-            if (response.Data.TryGetValue("winner", out var winner) && winner == playerColor)
+            if (response.Data.TryGetValue("winner", out var winner) && winner != playerColor)
             {
+                Debug.WriteLine($"GANADADOR: {winner}");
                 message = "¡Has ganado la partida!";
+            }else if (winner != null && winner == playerColor)
+            {
+                message = "HA GANADO LA IA";
             }
 
+
             MessageBox.Show(message, "Juego terminado", MessageBoxButton.OK, MessageBoxImage.Information);
-            NavigationService.GoBack();
         }
+
+        private void OnReturnToMenuClicked(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new MainPage());
+        }
+
+        private async void OnRematchClicked(object sender, RoutedEventArgs e)
+        {
+            GameOverPanel.Visibility = Visibility.Collapsed;
+
+            var token = AuthHelper.GetToken();
+            var message = new RequestMessage
+            {
+                Command = "START_GAME_IA",
+                Data = new Dictionary<string, string> { { "token", token } }
+            };
+
+            await TCPClient.SendOnlyMessageAsync(message);
+            // Esperas nueva respuesta START_GAME_SUCCESS
+        }
+
 
         private void ProcessOpponentDisconnected()
         {
@@ -249,7 +309,6 @@ namespace Chasser
         private void ShowDisconnectMessage()
         {
             MessageBox.Show("Se perdió la conexión con el servidor", "Error de conexión", MessageBoxButton.OK, MessageBoxImage.Error);
-            NavigationService.GoBack();
         }
 
         private void InitializeBoard()
