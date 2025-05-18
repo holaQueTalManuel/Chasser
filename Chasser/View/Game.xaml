@@ -31,7 +31,7 @@
         <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0">
             <Image Source="/Imgs/logo.jpg" Width="100" Height="100" Margin="5,5"/>
 
-            <Button Content="Reiniciar" Margin="5" Padding="10,5"
+            <Button Content="Reiniciar" Click="OnRestartClicked" Margin="5" Padding="10,5"
         Background="#8B4513" Foreground="Beige"
         FontWeight="Bold" FontFamily="Georgia"
         Width="120" BorderBrush="#5C3317" BorderThickness="2">
@@ -40,7 +40,7 @@
                 </Button.Effect>
             </Button>
 
-            <Button Content="Salir" Margin="5" Padding="10,5"
+            <Button Content="Salir" Click="OnExitClicked" Margin="5" Padding="10,5"
         Background="#8B4513" Foreground="Beige"
         FontWeight="Bold" FontFamily="Georgia"
         Width="120" BorderBrush="#5C3317" BorderThickness="2">

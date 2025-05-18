@@ -211,6 +211,8 @@ namespace Chasser.Common.Logic.Board
             }
         }
 
+        
+
         public bool IsGameOver() => Result != null;
 
         public TimeSpan? GetGameDuration() =>

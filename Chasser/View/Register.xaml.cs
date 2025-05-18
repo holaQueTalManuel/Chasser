@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using Chasser.Common.Network;
+using Chasser.Logic;
 using Chasser.Logic.Network;
 
 namespace Chasser
@@ -54,9 +55,14 @@ namespace Chasser
                         await TCPClient.SendOnlyMessageAsync(request);
                         var response = await TCPClient.ReceiveMessageAsync();
 
-                        if (response.Status == "REGISTER_SUCCESS")
+                        if (response.Status == "REGISTER_SUCCESS" && response.Data != null)
                         {
-                            NavigationService.Navigate(new MainPage());
+                            if (response.Data["token"] != null)
+                            {
+                                var token = response.Data["token"];
+                                AuthHelper.SetToken(token);
+                                NavigationService.Navigate(new MainPage());
+                            }
                         }
                         else
                         {

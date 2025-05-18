@@ -15,6 +15,8 @@ using Chasser.Common.Data;
 using Chasser.Common.Model;
 using Chasser.Common.Logic.Board;
 using Chasser.Common.Logic.Moves;
+using Chasser.Server.Network;
+using System.Reflection.PortableExecutable;
 
 namespace Chasser.Logic.Network
 {
@@ -24,7 +26,7 @@ namespace Chasser.Logic.Network
         private readonly ChasserContext _context;
         public event Action<string> ClientConnected;
         public event Action<string, string> MessageReceived;
-
+        private AIPlayer _aiPlayer = new AIPlayer(Player.Black);
         // Diccionario para mantener los juegos activos contra IA
         private Dictionary<TcpClient, GameState> activeAIGames = new();
 
@@ -51,32 +53,49 @@ namespace Chasser.Logic.Network
 
         private async Task HandleClientAsync(TcpClient client)
         {
+            NetworkStream stream = null;
+            StreamReader reader = null;
+            StreamWriter writer = null;
+
             try
             {
-                using var stream = client.GetStream();
-                using var reader = new StreamReader(stream);
-                using var writer = new StreamWriter(stream) { AutoFlush = true };
+                Console.WriteLine("💬 Iniciando HandleClientAsync");
+                stream = client.GetStream();
+                reader = new StreamReader(stream);
+                writer = new StreamWriter(stream) { AutoFlush = true };
+                Console.WriteLine("💬 Stream, reader y writer inicializados");
 
-                while (client.Connected && stream.CanRead)
+                activeAIGames.TryGetValue(client, out var gameState);
+
+                while (client.Connected)
                 {
-                    string message = await reader.ReadLineAsync();
-                    if (message == null)
+                    Console.WriteLine("💬 Esperando datos del cliente...");
+
+                    if (!stream.CanRead || (client.Client.Poll(0, SelectMode.SelectRead) && client.Client.Available == 0))
                     {
-                        Console.WriteLine("Cliente desconectado.");
+                        Console.WriteLine("💬 Conexión cerrada por el cliente (verificado manualmente)");
                         break;
                     }
 
-                    Console.WriteLine($"Mensaje recibido: {message}");
+                    string message = await reader.ReadLineAsync();
+                    Console.WriteLine($"💬 Línea leída: {message}");
+
+                    if (message == null)
+                    {
+                        Console.WriteLine("💬 Cliente desconectado (mensaje nulo)");
+                        break;
+                    }
+
                     MessageReceived?.Invoke(((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString(), message);
 
                     var msg = JsonSerializer.Deserialize<RequestMessage>(message);
                     if (msg == null)
                     {
-                        Console.WriteLine("Mensaje deserializado es null.");
+                        Console.WriteLine("💬 Mensaje deserializado es null.");
                         continue;
                     }
 
-                    Console.WriteLine($"Comando recibido: {msg.Command}");
+                    Console.WriteLine($"💬 Comando recibido: {msg.Command}");
 
                     switch (msg.Command)
                     {
@@ -90,149 +109,271 @@ namespace Chasser.Logic.Network
                             await HandleLogOut(msg.Data, writer);
                             break;
                         case "START_GAME_IA":
+                            Console.WriteLine("💬 Procesando START_GAME_IA");
                             await StartGameAgainstAI(msg.Data, writer, client);
+
+                            // ⚠️ Actualizar gameState si se inicia nueva partida
+                            activeAIGames.TryGetValue(client, out gameState);
+                            break;
+                        case "RESTART_REQUEST":
+                            Console.WriteLine("💬 Procesando RESTART_REQUEST");
+                            await HandleRestart(msg.Data, writer, client);
+
+                            // ❗ ACTUALIZAMOS gameState después del reinicio
+                            activeAIGames.TryGetValue(client, out gameState);
                             break;
                         case "GAME_ACTION_MOVE":
-                            if (activeAIGames.TryGetValue(client, out var gameState))
+                            Console.WriteLine("💬 Procesando GAME_ACTION_MOVE");
+                            if (activeAIGames.TryGetValue(client, out gameState))
                             {
-                                await ProcessPlayerMove(msg.Data, gameState, writer, client);
+                                await ProcessPlayerMove(msg.Data, gameState, writer, reader, client);
                             }
                             else
                             {
                                 await SendJsonAsync(writer, "GAME_ERROR", "No hay partida activa");
                             }
                             break;
+                        case "EXIT_GAME":
+                            await HandleExitGame(writer, client);
+                            break;
                         default:
-                            Console.WriteLine($"Comando no reconocido: {msg.Command}");
+                            Console.WriteLine($"💬 Comando no reconocido: {msg.Command}");
                             break;
                     }
                 }
             }
+            catch (IOException ex) when (ex.InnerException is SocketException)
+            {
+                Console.WriteLine($"💥 Error de conexión: {ex.Message}");
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error con cliente: {ex}");
+                Console.WriteLine($"💥 Error con cliente: {ex}");
             }
             finally
             {
-                activeAIGames.Remove(client);
-                client.Close();
-                client.Dispose();
-                Console.WriteLine("Cliente desconectado y recursos liberados.");
+                Console.WriteLine("💬 Liberando recursos del cliente...");
+                try
+                {
+                    activeAIGames.Remove(client);
+                    writer?.Dispose();
+                    reader?.Dispose();
+                    stream?.Dispose();
+
+                    if (client.Connected)
+                        client.Close();
+
+                    client.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"💥 Error liberando recursos: {ex}");
+                }
+
+                Console.WriteLine("💬 Cliente desconectado y recursos liberados.");
             }
         }
 
-        private async Task ProcessPlayerMove(Dictionary<string, string> moveData, GameState gameState, StreamWriter writer, TcpClient client)
+        private async Task HandleExitGame(StreamWriter writer, TcpClient client)
+        {
+            Console.WriteLine("Procesando EXIT_GAME...");
+            if (activeAIGames.ContainsKey(client))
+            {
+                activeAIGames.Remove(client);
+                Console.WriteLine("Partida eliminada del diccionario activeAIGames.");
+                await SendJsonAsync(writer, "EXIT_GAME_SUCCESS", "Partida cerrada");
+            }
+            else
+            {
+                await SendJsonAsync(writer, "EXIT_GAME_FAIL", "No hay partida activa");
+            }
+        }
+
+        private async Task HandleRestart(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
+        {
+            Console.WriteLine("Procesando RESTART_REQUEST...");
+            if (!data.ContainsKey("token"))
+            {
+                Console.WriteLine("Falta el token.");
+                await SendJsonAsync(writer, "RESTART_FAIL", "Token necesario");
+                return;
+            }
+            string token = data["token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Console.WriteLine("Token vacío.");
+                await SendJsonAsync(writer, "RESTART_FAIL", "Token vacío");
+                return;
+            }
+            // Llamar al método ValidateToken para comprobar el token
+            Usuario user = await ValidateToken(token);
+            if (user == null)
+            {
+                await SendJsonAsync(writer, "RESTART_FAIL", "Token inválido");
+                return;
+            }
+            // Continuar con la lógica para reiniciar la partida
+            Console.WriteLine($"Usuario validado: {user.Nombre}");
+            await SendJsonAsync(writer, "RESTART_ACCEPTED", "La partida ha sido reiniciada.");
+            activeAIGames[client] = new GameState(Player.White, Board.Initialize());
+        }
+
+        private async Task ProcessPlayerMove(Dictionary<string, string> moveData, GameState gameState, StreamWriter writer, StreamReader reader, TcpClient client)
         {
             try
             {
-                // Validación adicional
+                Console.WriteLine("💬 Entrando en ProcessPlayerMove");
+
+                if (!writer.BaseStream.CanWrite)
+                {
+                    Console.WriteLine("💥 Stream no disponible para escritura");
+                    return;
+                }
+
                 if (!moveData.TryGetValue("fromRow", out var fromRow) ||
                     !moveData.TryGetValue("fromCol", out var fromCol) ||
                     !moveData.TryGetValue("toRow", out var toRow) ||
                     !moveData.TryGetValue("toCol", out var toCol))
                 {
+                    Console.WriteLine("💥 Datos de movimiento incompletos");
                     await SendJsonAsync(writer, "MOVE_ERROR", "Datos de movimiento incompletos");
                     return;
                 }
 
                 var fromPos = new Position(int.Parse(fromRow), int.Parse(fromCol));
                 var toPos = new Position(int.Parse(toRow), int.Parse(toCol));
-
-                // Debugging: Mostrar estado actual
-                Console.WriteLine($"Intento de mover de {fromPos} a {toPos}");
-                Console.WriteLine($"Pieza en origen: {gameState.Board[fromPos]?.ToString() ?? "vacía"}");
-                Console.WriteLine($"Pieza en destino: {gameState.Board[toPos]?.ToString() ?? "vacía"}");
-                Console.WriteLine($"Turno actual: {gameState.CurrentPlayer}");
+                Console.WriteLine($"💬 Movimiento del jugador: {fromPos} → {toPos}");
 
                 var move = new NormalMove(fromPos, toPos);
-
                 var result = gameState.ExecuteMove(move);
+                Console.WriteLine($"💬 Movimiento ejecutado. Es válido: {result.IsValid}");
 
                 if (!result.IsValid)
                 {
-                    Console.WriteLine($"Movimiento inválido: {result.ErrorMessage}");
                     await SendJsonAsync(writer, "MOVE_ERROR", result.ErrorMessage);
                     return;
                 }
 
+                var responseData = new Dictionary<string, string>
+                {
+                    { "fromPos", fromPos.ToString() },
+                    { "toPos", toPos.ToString() },
+                    { "nextPlayer", gameState.CurrentPlayer.ToString() }
+                };
+
                 if (result.GameOver)
                 {
-                    await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
-                        new Dictionary<string, string>
-                        {
-                            { "winner", result.Winner?.ToString() ?? "draw" },
-                            { "fromRow", move.FromPos.Row.ToString() },
-                            { "fromCol", move.FromPos.Column.ToString() },
-                            { "toRow", move.ToPos.Row.ToString() },
-                            { "toCol", move.ToPos.Column.ToString() }
-                        });
-                    Console.WriteLine($"GANADOR: {result.Winner.ToString()}, JUGADOR ACTUAL: {gameState.CurrentPlayer.Opponent().ToString()}");
+                    responseData.Add("winner", result.Winner?.ToString() ?? "draw");
+                    await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado", responseData);
                     await UpdateDatabaseGameOver(user, result.Winner.ToString(), gameState.CurrentPlayer.Opponent().ToString());
-                    activeAIGames.Remove(client); // Solo se borra la partida, no la conexión ni el cliente
+                    activeAIGames.Remove(client);
                     return;
                 }
 
-                // Crear un diccionario con las posiciones convertidas a cadenas
-                var moveData2 = new Dictionary<string, string>
-                {
-                    { "fromPos", fromPos.ToString() },
-                    { "toPos", toPos.ToString() }
-                };
+                Console.WriteLine("💬 Enviando MOVE_ACCEPTED");
+                await SendJsonAsync(writer, "MOVE_ACCEPTED", "Movimiento aceptado", responseData);
 
-                // Enviar respuesta al cliente
-                await SendJsonAsync(writer, "MOVE_ACCEPTED", "Movimiento aceptado", moveData2);
+                Console.WriteLine("💬 Esperando confirmación MOVE_PROCESSED...");
+                var ackMessage = await ReadAckMessage(reader);
+                Console.WriteLine($"💬 Mensaje de ACK recibido: {ackMessage?.Command}");
 
-                // Movimiento de IA
-                if (!result.GameOver)
+                if (ackMessage?.Command != "MOVE_PROCESSED")
                 {
-                    
-                    await MakeAIMove(gameState, writer);
+                    Console.WriteLine("💥 Cliente no confirmó MOVE_PROCESSED");
+                    return;
                 }
+
+                Console.WriteLine("💬 Ejecutando movimiento de IA...");
+                await MakeAIMove(gameState, writer);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error procesando movimiento: {ex}");
+                Console.WriteLine($"💥 Error procesando movimiento: {ex}");
                 await SendJsonAsync(writer, "MOVE_ERROR", "Error interno del servidor");
+            }
+        }
+
+        private async Task<RequestMessage?> ReadAckMessage(StreamReader reader)
+        {
+            try
+            {
+                Console.WriteLine("💬 Leyendo ACK del cliente...");
+                string message = await reader.ReadLineAsync();
+                Console.WriteLine($"💬 Línea ACK recibida: {message}");
+                return JsonSerializer.Deserialize<RequestMessage>(message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"💥 Error leyendo ACK del cliente: {ex.Message}");
+                return null;
             }
         }
 
         private async Task MakeAIMove(GameState gameState, StreamWriter writer)
         {
-            var aiMove = GenerateAIMove(gameState);
-            if (aiMove != null)
+            try
             {
-                var result = gameState.ExecuteMove(aiMove);
+                Console.WriteLine("💬 Generando movimiento de IA...");
+                var aiMove = _aiPlayer.GenerateMove(gameState);
 
-                if (result.GameOver)
+                if (aiMove == null)
                 {
-                    Console.WriteLine($"DESDE EL SERVER: GANADOR: {result.Winner.ToString}");
-                    await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
-                        new Dictionary<string, string>
-                        {
-                                { "winner", result.Winner?.ToString() ?? "draw" },
-                                { "fromRow", aiMove.FromPos.Row.ToString() },
-                            { "fromCol", aiMove.FromPos.Column.ToString() },
-                            { "toRow", aiMove.ToPos.Row.ToString() },
-                            { "toCol", aiMove.ToPos.Column.ToString() }
-                        });
+                    Console.WriteLine("💥 La IA no pudo generar un movimiento válido");
                     return;
                 }
 
-                if (result.IsValid)
-                {
-                    await SendJsonAsync(writer, "AI_MOVE", "Movimiento de IA",
-                        new Dictionary<string, string>
-                        {
-                            { "fromRow", aiMove.FromPos.Row.ToString() },
-                            { "fromCol", aiMove.FromPos.Column.ToString() },
-                            { "toRow", aiMove.ToPos.Row.ToString() },
-                            { "toCol", aiMove.ToPos.Column.ToString() }
-                        });
-                    Console.WriteLine("Esperando que el cliente lea el AI_MOVE...");
+                var result = gameState.ExecuteMove(aiMove);
+                Console.WriteLine($"💬 Movimiento IA ejecutado. Válido: {result.IsValid}");
 
-                    
+                if (!result.IsValid)
+                {
+                    Console.WriteLine($"💥 Movimiento de IA inválido: {result.ErrorMessage}");
+                    return;
                 }
+
+                if (result.GameOver)
+                {
+                    Console.WriteLine("💬 Juego terminado por IA. Enviando GAME_OVER.");
+                    await HandleGameOver(writer, result, aiMove);
+                    return;
+                }
+
+                await SendAIMoveToClient(writer, aiMove);
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"💥 Error en MakeAIMove: {ex}");
+            }
+        }
+
+        private async Task HandleGameOver(StreamWriter writer, MoveResult result, Move aiMove)
+        {
+            Console.WriteLine($"DESDE EL SERVER: GANADOR: {result.Winner?.ToString() ?? "Empate"}");
+
+            await SendJsonAsync(writer, "GAME_OVER", "La partida ha terminado",
+                new Dictionary<string, string>
+                {
+            { "winner", result.Winner?.ToString() ?? "draw" },
+            { "fromRow", aiMove.FromPos.Row.ToString() },
+            { "fromCol", aiMove.FromPos.Column.ToString() },
+            { "toRow", aiMove.ToPos.Row.ToString() },
+            { "toCol", aiMove.ToPos.Column.ToString() }
+                });
+            
+        }
+
+        private async Task SendAIMoveToClient(StreamWriter writer, Move aiMove)
+        {
+            await SendJsonAsync(writer, "AI_MOVE", "Movimiento de IA",
+                new Dictionary<string, string>
+                {
+            { "fromRow", aiMove.FromPos.Row.ToString() },
+            { "fromCol", aiMove.FromPos.Column.ToString() },
+            { "toRow", aiMove.ToPos.Row.ToString() },
+            { "toCol", aiMove.ToPos.Column.ToString() }
+                });
+
+            Console.WriteLine("Movimiento de IA enviado. Esperando respuesta del cliente...");
         }
 
         private async Task SaveGameToDatabase(int userId, string gameCode)
@@ -556,12 +697,35 @@ namespace Chasser.Logic.Network
                 return;
             }
 
-            bool success = await RegisterUser(username, password, email);
+            Usuario user = await RegisterUser(username, password, email);
 
-            if (success)
+            if (user != null)
             {
                 Console.WriteLine("Registro completado correctamente.");
-                await SendJsonAsync(writer, "REGISTER_SUCCESS", "Registro completado correctamente");
+                Console.WriteLine("GENERANDO TOKEN PARA REGISTRO");
+
+
+                // 1. Generar token único
+                var token = Guid.NewGuid().ToString();
+
+                // 2. Crear nueva sesión
+                var sesion = new Sesion_Usuario
+                {
+                    Token = token,
+                    Expiration = DateTime.UtcNow.AddHours(2),
+                    UsuarioId = user.Id
+                };
+
+                _context.Sesiones_Usuarios.Add(sesion);
+                await _context.SaveChangesAsync();
+                var responseData = new Dictionary<string, string>
+                {
+                    { "token", token },
+                    { "user_id", user.Id.ToString() },
+                    { "username", user.Nombre }
+                };
+
+                await SendJsonAsync(writer, "REGISTER_SUCCESS", "Registro completado correctamente", responseData);
             }
             else
             {
@@ -570,14 +734,14 @@ namespace Chasser.Logic.Network
             }
         }
 
-        private async Task<bool> RegisterUser(string username, string password, string email)
+        private async Task<Usuario> RegisterUser(string username, string password, string email)
         {
             Console.WriteLine("Intentando registrar usuario en base de datos...");
 
             if (_context.Usuarios.Any(u => u.Nombre == username || u.Correo == email))
             {
                 Console.WriteLine("Usuario o correo ya existente.");
-                return false;
+                return null;
             }
 
             var usuario = new Usuario
@@ -585,13 +749,16 @@ namespace Chasser.Logic.Network
                 Nombre = username,
                 Correo = email,
                 Contrasenia = BCryptPasswordHasher.HashPassword(password),
-                Fecha_Creacion = DateTime.Now
+                Fecha_Creacion = DateTime.Now,
+                Racha_Victorias = 0,
+                Partidas_Ganadas = 0
+
             };
 
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
             Console.WriteLine("Usuario registrado correctamente en la base de datos.");
-            return true;
+            return usuario;
         }
 
         private async Task SendJsonAsync(StreamWriter writer, string status, string message, Dictionary<string, string>? data = null)
