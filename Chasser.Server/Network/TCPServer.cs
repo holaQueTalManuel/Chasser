@@ -177,16 +177,14 @@ namespace Chasser.Logic.Network
         private async Task HandleExitGame(StreamWriter writer, TcpClient client)
         {
             Console.WriteLine("Procesando EXIT_GAME...");
-            if (activeAIGames.ContainsKey(client))
-            {
+            
                 activeAIGames.Remove(client);
                 Console.WriteLine("Partida eliminada del diccionario activeAIGames.");
                 await SendJsonAsync(writer, "EXIT_GAME_SUCCESS", "Partida cerrada");
-            }
-            else
-            {
-                await SendJsonAsync(writer, "EXIT_GAME_FAIL", "No hay partida activa");
-            }
+            
+            
+                //MODIFICAR MAÑANA MARTES PARA DEJARLO BIEN, SOLUCION TEMPORAL
+            
         }
 
         private async Task HandleRestart(Dictionary<string, string> data, StreamWriter writer, TcpClient client)
@@ -335,6 +333,7 @@ namespace Chasser.Logic.Network
                 {
                     Console.WriteLine("💬 Juego terminado por IA. Enviando GAME_OVER.");
                     await HandleGameOver(writer, result, aiMove);
+                    await UpdateDatabaseGameOver(user, result.Winner.ToString(), gameState.CurrentPlayer.Opponent().ToString());
                     return;
                 }
 
@@ -412,7 +411,7 @@ namespace Chasser.Logic.Network
             Console.WriteLine($"Usuario antes de actualizar: {user.Nombre}, Partidas_Ganadas: {user.Partidas_Ganadas}, Racha_Victorias: {user.Racha_Victorias}");
             Console.WriteLine($"Ganador: {winner}");
 
-            if (winner == playerColor)
+            if (winner == "white")
             {
                 user.Partidas_Ganadas++;
                 user.Racha_Victorias++;

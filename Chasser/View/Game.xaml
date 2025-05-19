@@ -14,6 +14,15 @@
         <SolidColorBrush x:Key="LightBrown" Color="#D2B48C" />
         <SolidColorBrush x:Key="DarkBrown" Color="#8B4513" />
         <SolidColorBrush x:Key="HighlightColor" Color="#7DFF7D" Opacity="0.5"/>
+
+        <Storyboard x:Key="GameOverFadeIn">
+            <DoubleAnimation Storyboard.TargetName="GameOverPanel"
+                     Storyboard.TargetProperty="Opacity"
+                     From="0"
+                     To="1"
+                     Duration="0:0:0.5"/>
+        </Storyboard>
+
     </Page.Resources>
 
     <Grid Background="{StaticResource SoftBeige}">
@@ -31,7 +40,7 @@
         <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0">
             <Image Source="/Imgs/logo.jpg" Width="100" Height="100" Margin="5,5"/>
 
-            <Button Content="Reiniciar" Click="OnRestartClicked" Margin="5" Padding="10,5"
+            <Button Content="Reiniciar" Name="btnRestart" Visibility="Visible" Click="OnRestartClicked" Margin="5" Padding="10,5"
         Background="#8B4513" Foreground="Beige"
         FontWeight="Bold" FontFamily="Georgia"
         Width="120" BorderBrush="#5C3317" BorderThickness="2">
@@ -60,7 +69,7 @@
         </StackPanel>
 
 
-        <Grid Grid.Column="1" Name="boardGrid" Width="500" Height="500" MouseDown="boardGrid_MouseDown">
+        <Grid Grid.Column="1" Name="boardGrid" Width="500" Height="500" MouseDown="boardGrid_MouseDown" IsHitTestVisible="True">
             <Grid.Background>
                 <ImageBrush ImageSource="/Imgs/realBoard.png"></ImageBrush>
             </Grid.Background>
@@ -104,15 +113,16 @@
 
         <!-- Panel derecho con información -->
         <StackPanel x:Name="infoUser"
-            Grid.Column="2"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Center"
-            Margin="20,0,0,0"
+    Grid.Column="2"
+    HorizontalAlignment="Left"
+    VerticalAlignment="Center"
+    Margin="20,0,0,0" 
             Background="#FFFF88"
-            MinWidth="220"
+    MinWidth="250"
+            
             MaxWidth="350"
-            Effect="{DynamicResource DropShadow}"
-            RenderTransformOrigin="0.5,0.5">
+    Effect="{DynamicResource DropShadow}"
+    RenderTransformOrigin="0.5,0.5">
 
             <StackPanel.RenderTransform>
                 <RotateTransform Angle="-1.5"/>
@@ -127,30 +137,76 @@
                           BlurRadius="10"/>
             </StackPanel.Resources>
 
-            <TextBlock Text="Datos del jugador" FontSize="17" FontWeight="Bold"/>
-            <TextBlock x:Name="nameBlock" Text="Manuel Montero Calero" FontSize="17"/>
-            <TextBlock x:Name="gamesBlock" Text="Partidas ganadas: 3" FontSize="17"/>
-            <TextBlock x:Name="streakBlock" Text="Partidas ganadas: 3" FontSize="17"/>
-            <TextBlock x:Name="gameCodeBlock" 
+            <TextBlock Padding="3" Text="Datos del jugador" FontSize="17" FontWeight="Bold"/>
+            <TextBlock Padding="3" x:Name="nameBlock" Text="Manuel Montero Calero" FontSize="17"/>
+            <TextBlock Padding="3" x:Name="gamesBlock" Text="Partidas ganadas: 3" FontSize="17"/>
+            <TextBlock Padding="3" x:Name="streakBlock" Text="Partidas ganadas: 3" FontSize="17"/>
+            <TextBlock Padding="3" x:Name="gameCodeBlock" 
                Text="Código de partida: ABC123" 
                FontSize="17" 
                Margin="0,10,0,0"
                FontWeight="Bold"
                Foreground="{StaticResource DarkBrown}"/>
         </StackPanel>
-        <Grid x:Name="GameOverPanel"
-      Background="#AA000000"
-      Visibility="Collapsed"
-      Panel.ZIndex="99">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Background="White" >
-                <TextBlock x:Name="GameOverMessage"
-                   FontSize="24"
-                   FontWeight="Bold"
-                   TextAlignment="Center"
-                   Margin="0,0,0,20"/>
-                <Button Content="Volver al menú" Click="OnReturnToMenuClicked" Margin="0,0,0,10"/>
-                <Button Content="Jugar otra vez" Click="OnRematchClicked"/>
-            </StackPanel>
-        </Grid>
+
+        <Popup x:Name="GameOverPopup"
+       AllowsTransparency="True"
+       Placement="Center"
+       StaysOpen="False"
+       IsOpen="False"
+       PopupAnimation="Fade">
+
+            <Grid Background="#AA000000"
+          Width="{Binding ActualWidth, ElementName=boardGrid, Mode=OneWay}"
+          Height="{Binding ActualHeight, ElementName=boardGrid, Mode=OneWay}">
+                <Border Background="{StaticResource LightBrown}"
+                CornerRadius="20"
+                Padding="30"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                BorderBrush="{StaticResource DarkBrown}"
+                BorderThickness="4">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black"
+                                  Opacity="0.5"
+                                  BlurRadius="10"
+                                  ShadowDepth="5"/>
+                    </Border.Effect>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="¡Fin del juego!"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           FontFamily="Georgia"
+                           Foreground="Beige"
+                           TextAlignment="Center"
+                           Margin="0,0,0,20"/>
+
+                        <TextBlock x:Name="WinnerTextBlock"
+                           Text="Ganador: White"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           FontFamily="Georgia"
+                           Foreground="Beige"
+                           TextAlignment="Center"
+                           Margin="0,0,0,20"/>
+                        
+                        <Button Content="Salir"
+                        Width="160"
+                        Padding="10,5"
+                        Click="OnExitClicked"
+                        Background="{StaticResource DarkBrown}"
+                        Foreground="Beige"
+                        FontWeight="Bold"
+                        FontFamily="Georgia"
+                        BorderBrush="#5C3317"
+                        BorderThickness="2"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Popup>
+
+
+
     </Grid>
 </Page>

@@ -59,7 +59,7 @@ namespace Chasser
 
         private void Login_Loaded(object sender, RoutedEventArgs e)
         {
-            (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(1100, 600);
+            (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(1200, 600);
         }
 
         private async Task ListenForServerMessagesAsync()
@@ -88,6 +88,7 @@ namespace Chasser
                 //ShowDisconnectMessage();
             }
         }
+        
 
 
         private void ProcessServerResponse(ResponseMessage response)
@@ -96,7 +97,31 @@ namespace Chasser
 
             switch (response.Status)
             {
+                case "START_GAME_SUCCESS":
+                    if (response.Data != null &&
+                        response.Data.TryGetValue("codigo", out string codigo) &&
+                        response.Data.TryGetValue("color", out string color) &&
+                        response.Data.TryGetValue("nombreUsuario", out string user)
 
+                        )
+                    {
+
+
+                        Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
+                        response.Data.TryGetValue("partidasGanadas", out string partidasGanadas);
+                        response.Data.TryGetValue("racha", out string racha);
+
+                        // Aquí haces la navegación desde el hilo principal
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            // Cerrar partida actual
+                            this.Dispose(); // solo si has implementado lo anterior
+
+                            // Ir a nueva partida
+                            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color, user, partidasGanadas, racha));
+                        });
+                    }
+                    break;
                 case "START_GAME_FAIL":
                 case string fail when fail.StartsWith("START_GAME_FAIL"):
                     Application.Current.Dispatcher.Invoke(() =>
@@ -106,29 +131,30 @@ namespace Chasser
                     break;
 
                 case "MOVE_ACCEPTED":
-                    if (TryProcessMoveAccepted(response, out var from, out var to))
+                    if (TryExtractAndApplyMove(response, out var from, out var to))
                     {
+                        UpdateDisplay();
                         _ = ProcessMoveWithConfirmation(from, to);
                     }
                     break;
 
                 case "AI_MOVE":
-                    ProcessAIMove(response);
+                    if (TryExtractAndApplyMove(response, out var aiFrom, out var aiTo))
+                    {
+                        UpdateDisplay();
+                        isMyTurn = true;
+                        UpdateTurnIndicator();
+                    }
                     break;
 
                 case "GAME_OVER":
-                    if (TryProcessMoveAccepted(response, out Position fromA, out Position toB))
+                    if (TryExtractAndApplyMove(response, out var finalFrom, out var finalTo))
                     {
-
-                        MovePieceOnClient(fromA, toB);
-                        UpdateDisplay(); // <--- para que se vea el nuevo estado del tablero
+                        UpdateDisplay();
                         turnBlock.Visibility = Visibility.Collapsed;
                     }
-                    else
-                    {
-                        ProcessInvalidMove("Movimiento inválido");
-                    }
-                        ProcessGameOver(response);
+
+                    ProcessGameOver(response);
                     break;
                 case "RESTART_ACCEPTED":
                     Application.Current.Dispatcher.Invoke(() =>
@@ -149,24 +175,42 @@ namespace Chasser
                     break;
             }
         }
-
-
-        private void ProcessAIMove(ResponseMessage response)
+        public void Dispose()
         {
-            if (response.Data != null &&
-                int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
+            TCPClient.Disconnect();
+        }
+
+        private bool TryExtractAndApplyMove(ResponseMessage response, out Position from, out Position to)
+        {
+            from = to = null;
+
+            if (response?.Data == null)
+                return false;
+
+            // 1. Intentar extraer movimiento por "fromPos"/"toPos" (formato MOVE_ACCEPTED)
+            if (Position.TryParse(response.Data.GetValueOrDefault("fromPos"), out from) &&
+                Position.TryParse(response.Data.GetValueOrDefault("toPos"), out to))
+            {
+                MovePieceOnClient(from, to);
+                return true;
+            }
+
+            // 2. Intentar extraer por "fromRow"/"fromCol" (formato AI_MOVE o GAME_OVER con coords sueltas)
+            if (int.TryParse(response.Data.GetValueOrDefault("fromRow"), out int fromRow) &&
                 int.TryParse(response.Data.GetValueOrDefault("fromCol"), out int fromCol) &&
                 int.TryParse(response.Data.GetValueOrDefault("toRow"), out int toRow) &&
                 int.TryParse(response.Data.GetValueOrDefault("toCol"), out int toCol))
             {
-                var from = new Position(fromRow, fromCol);
-                var to = new Position(toRow, toCol);
-
+                from = new Position(fromRow, fromCol);
+                to = new Position(toRow, toCol);
                 MovePieceOnClient(from, to);
-                isMyTurn = true;
-                UpdateTurnIndicator();
+                return true;
             }
+
+            return false;
         }
+
+        
 
         private void MovePieceOnClient(Position from, Position to)
         {
@@ -185,31 +229,6 @@ namespace Chasser
             UpdateTurnIndicator();
         }
 
-
-
-
-        private bool TryProcessMoveAccepted(ResponseMessage response, out Position from, out Position to)
-        {
-            from = to = null;
-            try
-            {
-                if (response.Data != null &&
-                    Position.TryParse(response.Data.GetValueOrDefault("fromPos"), out from) &&
-                    Position.TryParse(response.Data.GetValueOrDefault("toPos"), out to))
-                {
-                    MovePieceOnClient(from, to);
-                    UpdateDisplay();
-                    return true;
-                }
-                ProcessInvalidMove("Datos de movimiento inválidos");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error procesando MOVE_ACCEPTED: {ex}");
-                return false;
-            }
-        }
 
         private async Task ProcessMoveWithConfirmation(Position from, Position to)
         {
@@ -244,44 +263,22 @@ namespace Chasser
         private void ProcessGameOver(ResponseMessage response)
         {
             string message = response.Message;
-            if (response.Data.TryGetValue("winner", out var winner) && winner != playerColor)
+            if (response.Data.TryGetValue("winner", out var winner))
             {
-                Debug.WriteLine($"GANADADOR: {winner}");
-                message = "¡Has ganado la partida!";
-            }else if (winner != null && winner == playerColor)
-            {
-                message = "HA GANADO LA IA";
+                Debug.WriteLine($"GANADOR: {winner}");
+
+                if (winner == "white")
+                {
+                    message = "¡Has ganado la partida!";
+                }
+                else
+                {
+                    message = "Ha ganado la IA";
+                }
             }
-
-
-            MessageBox.Show(message, "Juego terminado", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void OnReturnToMenuClicked(object sender, RoutedEventArgs e)
-        {
-            NavigationService.Navigate(new MainPage());
-        }
-
-        private async void OnRematchClicked(object sender, RoutedEventArgs e)
-        {
-            GameOverPanel.Visibility = Visibility.Collapsed;
-
-            var token = AuthHelper.GetToken();
-            var message = new RequestMessage
-            {
-                Command = "START_GAME_IA",
-                Data = new Dictionary<string, string> { { "token", token } }
-            };
-
-            await TCPClient.SendOnlyMessageAsync(message);
-            // Esperas nueva respuesta START_GAME_SUCCESS
-        }
-
-
-        private void ProcessOpponentDisconnected()
-        {
-            MessageBox.Show("El oponente se ha desconectado", "Fin de la partida", MessageBoxButton.OK, MessageBoxImage.Information);
-            NavigationService.GoBack();
+            WinnerTextBlock.Text = message;
+            btnRestart.Visibility = Visibility.Collapsed;
+            GameOverPopup.IsOpen = true;
         }
 
         private void ShowDisconnectMessage()
@@ -430,7 +427,7 @@ namespace Chasser
 
         private void ShowHighlights()
         {
-            var highlightColor = new SolidColorBrush(Color.FromArgb(150, 125, 255, 125));
+            var highlightColor = new SolidColorBrush(Color.FromArgb(150, 135, 206, 250));
             foreach (var pos in moveCache.Keys)
             {
                 highlights[pos.Row, pos.Column].Fill = highlightColor;
@@ -456,6 +453,7 @@ namespace Chasser
         }
         private async void OnRestartClicked(object sender, RoutedEventArgs e)
         {
+            GameOverPopup.IsOpen = false;
             var restartMessage = new RequestMessage
             {
                 Command = "RESTART_REQUEST",
@@ -466,24 +464,24 @@ namespace Chasser
                 }
             };
             await TCPClient.SendOnlyMessageAsync(restartMessage);
-            //if (response != null && response.Status != null)
-            //{
-            //    if (response.Status == "RESTART_ACCEPTED")
-            //    {
-            //        isMyTurn = playerColor == "white";
-            //        ResetGame();
-            //    }
-            //    else
-            //    {
-            //        MessageBox.Show($"Error: {response.Status}", "No se pudo reiniciar", MessageBoxButton.OK, MessageBoxImage.Warning);
-            //    }
-            //}
-            //else
-            //{
-            //    MessageBox.Show("No se recibió respuesta del servidor.", "Error de comunicación", MessageBoxButton.OK, MessageBoxImage.Error);
-            //}
+            
 
         }
+
+        private async void OnRestartNewGameClicked(object sender, RoutedEventArgs e)
+        {
+            GameOverPopup.IsOpen = false;
+            var restartMessage = new RequestMessage
+            {
+                Command = "START_GAME_IA",
+                Data = new Dictionary<string, string>
+                {
+                    { "token", AuthHelper.GetToken() }
+                }
+            };
+            await TCPClient.SendOnlyMessageAsync(restartMessage);
+        }
+
         private async void OnExitClicked(object sender, RoutedEventArgs e)
         {
             var exitMessage = new RequestMessage
