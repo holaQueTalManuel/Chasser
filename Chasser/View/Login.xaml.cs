@@ -39,7 +39,7 @@ namespace Chasser
 
         private void Login_Loaded(object sender, RoutedEventArgs e)
         {
-            (Window.GetWindow(this) as MainWindow)?.AjustarTamaño(900, 600);
+            (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(900, 600);
         }
 
         private async void Login_Click(object sender, RoutedEventArgs e)

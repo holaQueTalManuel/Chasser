@@ -127,16 +127,7 @@ namespace Chasser.Common.Logic.Board
             {
                 Console.WriteLine("¡El juego ha terminado!");
 
-                if (Result.IsDraw)
-                {
-                    reason = "Draw";
-                    Console.WriteLine("Resultado: Empate.");
-                }
-                else if (Result.VictoryType.HasValue)
-                {
-                    reason = Result.VictoryType.ToString();
-                    Console.WriteLine($"Resultado: Victoria por {reason}");
-                }
+                
 
                 if (Result?.Winner != null)
                 {

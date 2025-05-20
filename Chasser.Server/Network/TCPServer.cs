@@ -411,7 +411,7 @@ namespace Chasser.Logic.Network
             Console.WriteLine($"Usuario antes de actualizar: {user.Nombre}, Partidas_Ganadas: {user.Partidas_Ganadas}, Racha_Victorias: {user.Racha_Victorias}");
             Console.WriteLine($"Ganador: {winner}");
 
-            if (winner == "white")
+            if (winner == "White")
             {
                 user.Partidas_Ganadas++;
                 user.Racha_Victorias++;

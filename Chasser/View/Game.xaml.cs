@@ -263,8 +263,9 @@ namespace Chasser
         private void ProcessGameOver(ResponseMessage response)
         {
             string message = response.Message;
-            if (response.Data.TryGetValue("winner", out var winner))
+            if (response.Data.TryGetValue("winner", out var winnerData))
             {
+                var winner = winnerData.ToString().ToLower();
                 Debug.WriteLine($"GANADOR: {winner}");
 
                 if (winner == "white")
