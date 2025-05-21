@@ -122,6 +122,9 @@ namespace Chasser.Logic.Network
                             // ❗ ACTUALIZAMOS gameState después del reinicio
                             activeAIGames.TryGetValue(client, out gameState);
                             break;
+                        case "RECOVERY_PASSWORD":
+                            await HandleRecoverPassword(msg.Data, writer);
+                            break;
                         case "GAME_ACTION_MOVE":
                             Console.WriteLine("💬 Procesando GAME_ACTION_MOVE");
                             if (activeAIGames.TryGetValue(client, out gameState))
@@ -171,6 +174,65 @@ namespace Chasser.Logic.Network
                 }
 
                 Console.WriteLine("💬 Cliente desconectado y recursos liberados.");
+            }
+        }
+
+        private async Task HandleRecoverPassword(Dictionary<string, string> data, StreamWriter writer)
+        {
+            Console.WriteLine("Procesando RECOVERY_PASSWORD...");
+            
+            if (!data.ContainsKey("email"))
+            {
+                Console.WriteLine("Falta el email.");
+                await SendJsonAsync(writer, "RECOVERY_FAIL", "Email necesario");
+                return;
+            }
+            if (!data.ContainsKey("new_password"))
+            {
+                Console.WriteLine("Falta la nueva contraseña.");
+                await SendJsonAsync(writer, "RECOVERY_FAIL", "Nueva contraseña necesario");
+                return;
+            }
+            string email = data["email"];
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                Console.WriteLine("Email vacío.");
+                await SendJsonAsync(writer, "RECOVERY_FAIL", "Email vacío");
+                return;
+            }
+            string newPassword = data["new_password"];
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                Console.WriteLine("Nueva contraseña vacía.");
+                await SendJsonAsync(writer, "RECOVERY_FAIL", "Nueva contraseña vacia");
+                return;
+            }
+
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == email);
+
+            if (user == null)
+            {
+                await SendJsonAsync(writer, "RECOVERY_FAIL", "NO EXISTE EL USUARIO");
+                return;
+            }
+            user.Contrasenia = BCryptPasswordHasher.HashPassword(newPassword);
+
+            try
+            {
+                int rowsAffected = await _context.SaveChangesAsync();
+                if (rowsAffected > 0)
+                {
+                    await SendJsonAsync(writer, "RECOVERY_SUCCESS", "Contraseña actualizada correctamente");
+                }
+                else
+                {
+                    await SendJsonAsync(writer, "RECOVERY_FAIL", "No se realizaron cambios");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al guardar: {ex.Message}");
+                await SendJsonAsync(writer, "RECOVERY_FAIL", "Error interno al guardar");
             }
         }
 

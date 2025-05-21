@@ -18,6 +18,7 @@ using Microsoft.IdentityModel.Tokens;
 using Chasser.Logic.Network;
 using Chasser.Common.Network;
 using Chasser.Logic;
+using Chasser.View;
 
 namespace Chasser
 {
@@ -84,6 +85,11 @@ namespace Chasser
             {
                 MessageBox.Show("Ambos campos deben estar completos.");
             }
+        }
+
+        public async void ForgotPassword_Click(object sender, RoutedEventArgs e)
+        {
+            new RecoveryWindow(){ Owner = Window.GetWindow(this) }.ShowDialog();
         }
 
 

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <None Remove="Imgs\board.png" />
+    <None Remove="Imgs\caballo-ajedrez-95114.mp3" />
     <None Remove="Imgs\horse.png" />
     <None Remove="Imgs\horseWpng.png" />
     <None Remove="Imgs\logo.ico" />
@@ -27,6 +28,9 @@
 
   <ItemGroup>
     <Resource Include="Imgs\board.png" />
+    <Resource Include="Imgs\caballo-ajedrez-95114.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\horse.png" />
     <Resource Include="Imgs\horseWpng.png" />
     <Resource Include="Imgs\logo.ico" />

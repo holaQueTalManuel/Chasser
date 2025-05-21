@@ -227,6 +227,7 @@ namespace Chasser
 
             DrawBoard(); // Redibuja el tablero en pantalla
             UpdateTurnIndicator();
+            SoundManager.PlayMoveSound();
         }
 
 
@@ -360,6 +361,7 @@ namespace Chasser
             var piece = gameState.Board[pos];
             if (piece == null || piece.Color.ToString().ToLower() != playerColor) return;
 
+            SoundManager.PlayMoveSound();
             selectedPos = pos;
             CacheMoves(gameState.GetLegalMoves(pos));
             ShowHighlights();
