@@ -90,8 +90,16 @@ namespace Chasser
                         Data = new Dictionary<string, string> { { "token", token } }
                     };
 
-                    // No esperamos respuesta para no bloquear la salida
-                    //_ = TCPClient.SendMessageAsync(request);
+                    await TCPClient.SendOnlyMessageAsync(request);
+                    var response = await TCPClient.ReceiveMessageAsync(); 
+
+                    if (response.Status == "LOGOUT_SUCCESS") 
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            NavigationService.Navigate(new Login());
+                        });
+                    }
                 }
 
                 // Limpiar credenciales
