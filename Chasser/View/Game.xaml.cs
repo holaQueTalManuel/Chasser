@@ -348,14 +348,30 @@ namespace Chasser
             Debug.WriteLine($"Clic en posición: {pos.Row},{pos.Column}");
             Debug.WriteLine($"Pieza en posición: {gameState.Board[pos]?.ToString() ?? "vacía"}");
 
-            if (selectedPos == null)
+            // Si ya hay una posición seleccionada
+            if (selectedPos != null)
             {
-                SelectPiece(pos);
+                // Si se hace clic en la misma pieza seleccionada, deseleccionar
+                if (selectedPos == pos)
+                {
+                    DeselectPiece();
+                    return;
+                }
+
+                // Si no, intentar hacer el movimiento
+                TryMakeMove(pos);
             }
             else
             {
-                TryMakeMove(pos);
+                SelectPiece(pos);
             }
+        }
+
+        private void DeselectPiece()
+        {
+            selectedPos = null;
+            HideHighlights(); // Método para limpiar los resaltados de movimientos posibles
+            Debug.WriteLine("Pieza deseleccionada");
         }
 
 
