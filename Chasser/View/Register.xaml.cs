@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
+using Chasser.Common.Logic.Enums;
 using Chasser.Common.Network;
 using Chasser.Logic;
 using Chasser.Logic.Network;
+using Chasser.View;
 
 namespace Chasser
 {
@@ -32,6 +34,8 @@ namespace Chasser
 
         private async void Register_Click(object sender, RoutedEventArgs e)
         {
+            var owner = Window.GetWindow(this);
+
             if (!string.IsNullOrWhiteSpace(EmailBox.Text) &&
                 !string.IsNullOrWhiteSpace(UsernameBox.Text) &&
                 !string.IsNullOrWhiteSpace(PasswordBox.Password) &&
@@ -43,11 +47,11 @@ namespace Chasser
                     {
                         Command = "REGISTER",
                         Data = new Dictionary<string, string>
-                        {
-                            { "username", UsernameBox.Text.Trim() },
-                            { "password", PasswordBox.Password.Trim() },
-                            { "email", EmailBox.Text.Trim() }
-                        }
+                {
+                    { "username", UsernameBox.Text.Trim() },
+                    { "password", PasswordBox.Password.Trim() },
+                    { "email", EmailBox.Text.Trim() }
+                }
                     };
 
                     try
@@ -66,24 +70,41 @@ namespace Chasser
                         }
                         else
                         {
-                            MessageBox.Show($"El registro ha fallado. Causa: {response.Message}");
+                            PopUpInfo.ShowMessage(
+                                $"El registro ha fallado. Causa: {response.Message}",
+                                owner,
+                                MessageType.Error
+                            );
                         }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error de conexión: " + ex.Message);
+                        PopUpInfo.ShowMessage(
+                            "Error de conexión: " + ex.Message,
+                            owner,
+                            MessageType.Error
+                        );
                     }
                 }
                 else
                 {
-                    MessageBox.Show("Las contraseñas no coinciden.");
+                    PopUpInfo.ShowMessage(
+                        "Las contraseñas no coinciden.",
+                        owner,
+                        MessageType.Warning
+                    );
                 }
             }
             else
             {
-                MessageBox.Show("Por favor, rellene todos los campos.");
+                PopUpInfo.ShowMessage(
+                    "Por favor, rellene todos los campos.",
+                    owner,
+                    MessageType.Warning
+                );
             }
         }
+
 
         private void EmailBox_TextChanged(object sender, TextChangedEventArgs e)
         {

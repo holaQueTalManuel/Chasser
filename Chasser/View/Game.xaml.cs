@@ -8,7 +8,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Azure;
 using Chasser.Common.Logic.Board;
+using Chasser.Common.Logic.Enums;
 using Chasser.Common.Logic.Moves;
 using Chasser.Common.Network;
 using Chasser.Logic;
@@ -126,7 +128,7 @@ namespace Chasser
                 case string fail when fail.StartsWith("START_GAME_FAIL"):
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        MessageBox.Show($"Error al crear partida: {response.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        PopUpInfo.ShowMessage($"Error al crear partida {response.Message}", Window.GetWindow(this), MessageType.Error);
                     });
                     break;
 
@@ -256,7 +258,7 @@ namespace Chasser
 
         private void ProcessInvalidMove(string message)
         {
-            MessageBox.Show(message, "Movimiento inválido", MessageBoxButton.OK, MessageBoxImage.Warning);
+            PopUpInfo.ShowMessage($"Movimiento inválido {message}", Window.GetWindow(this), MessageType.Warning);
             isMyTurn = true;
             UpdateDisplay();
         }
@@ -285,7 +287,8 @@ namespace Chasser
 
         private void ShowDisconnectMessage()
         {
-            MessageBox.Show("Se perdió la conexión con el servidor", "Error de conexión", MessageBoxButton.OK, MessageBoxImage.Error);
+            PopUpInfo.ShowMessage($"Se perdió la conexión con el servidor. Error de conexion", Window.GetWindow(this), MessageType.Error);
+
         }
 
         private void InitializeBoard()
@@ -402,7 +405,8 @@ namespace Chasser
                 Debug.WriteLine($"Error al enviar movimiento: {ex}");
                 isMyTurn = true;
                 UpdateDisplay();
-                MessageBox.Show("Error al enviar movimiento", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                PopUpInfo.ShowMessage($"Error al enviar movimiento", Window.GetWindow(this), MessageType.Error);
+
             }
             finally
             {

@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using Chasser.Common.Logic.Enums;
 using Chasser.Common.Network;
 using Chasser.Logic;
 using Chasser.Logic.Network;
-using Chasser.View;
+using Chasser.View; // AÑADIDO
 
 namespace Chasser
 {
@@ -17,6 +18,7 @@ namespace Chasser
             InitializeComponent();
             this.Loaded += Login_Loaded;
         }
+
         private void Login_Loaded(object sender, RoutedEventArgs e)
         {
             (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(900, 600);
@@ -27,7 +29,7 @@ namespace Chasser
             var token = AuthHelper.GetToken();
             if (string.IsNullOrEmpty(token))
             {
-                MessageBox.Show("No se encontró el token de autenticación", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                PopUpInfo.ShowMessage("No se encontró el token de autenticación", Window.GetWindow(this), MessageType.Warning);
                 return;
             }
 
@@ -40,42 +42,36 @@ namespace Chasser
             try
             {
                 await TCPClient.SendOnlyMessageAsync(request);
-                var response = await TCPClient.ReceiveMessageAsync(); // ⬅️ IMPORTANTE
+                var response = await TCPClient.ReceiveMessageAsync();
 
                 if (response.Status == "START_GAME_SUCCESS")
                 {
                     if (response.Data != null &&
                         response.Data.TryGetValue("codigo", out string codigo) &&
                         response.Data.TryGetValue("color", out string color) &&
-                        response.Data.TryGetValue("nombreUsuario", out string user)
-
-                        )
+                        response.Data.TryGetValue("nombreUsuario", out string user))
                     {
-
-
                         Debug.WriteLine($"Partida creada - Código: {codigo}, Color: {color}");
                         response.Data.TryGetValue("partidasGanadas", out string partidasGanadas);
                         response.Data.TryGetValue("racha", out string racha);
 
-                        // Aquí haces la navegación desde el hilo principal
                         Application.Current.Dispatcher.Invoke(() =>
                         {
-                            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color,user, partidasGanadas, racha));
+                            NavigationService.Navigate(new Game(codigo, AuthHelper.GetToken(), color, user, partidasGanadas, racha));
                         });
                     }
                 }
                 else
                 {
-                    MessageBox.Show("No se pudo iniciar la partida con la IA", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    PopUpInfo.ShowMessage("No se pudo iniciar la partida con la IA", Window.GetWindow(this), MessageType.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error de conexión: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                PopUpInfo.ShowMessage($"Error de conexión: {ex.Message}", Window.GetWindow(this), MessageType.Error);
                 Debug.WriteLine($"Error en Start_Game_IA_Click: {ex}");
             }
         }
-
 
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {
@@ -91,9 +87,9 @@ namespace Chasser
                     };
 
                     await TCPClient.SendOnlyMessageAsync(request);
-                    var response = await TCPClient.ReceiveMessageAsync(); 
+                    var response = await TCPClient.ReceiveMessageAsync();
 
-                    if (response.Status == "LOGOUT_SUCCESS") 
+                    if (response.Status == "LOGOUT_SUCCESS")
                     {
                         Application.Current.Dispatcher.Invoke(() =>
                         {
@@ -102,16 +98,11 @@ namespace Chasser
                     }
                 }
 
-                // Limpiar credenciales
-                //AuthHelper.ClearToken();
-
-                // Navegar al login
                 NavigationService.Navigate(new Login());
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error en Exit_Click: {ex}");
-                // Aun así navegar al login aunque falle el logout
                 NavigationService.Navigate(new Login());
             }
         }

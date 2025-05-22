@@ -4,9 +4,11 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using Chasser.Common.Logic.Enums;
 using Chasser.Common.Network;
 using Chasser.Logic;
 using Chasser.Logic.Network;
+using Chasser.View; 
 
 namespace Chasser.ViewModel
 {
@@ -17,7 +19,6 @@ namespace Chasser.ViewModel
         private string _email;
         private string _newPassword;
         private string _confirmPassword;
-        private string _token;
 
         public string Email
         {
@@ -45,7 +46,6 @@ namespace Chasser.ViewModel
         public RecoveryViewModel(Window window)
         {
             _window = window;
-
             ChangePasswordCommand = new RelayCommand(ChangePassword);
             CancelCommand = new RelayCommand(Cancel);
         }
@@ -56,13 +56,13 @@ namespace Chasser.ViewModel
                 string.IsNullOrWhiteSpace(NewPassword) ||
                 string.IsNullOrWhiteSpace(ConfirmPassword))
             {
-                MessageBox.Show("Completa todos los campos.");
+                PopUpInfo.ShowMessage("Completa todos los campos.", _window, MessageType.Warning);
                 return;
             }
 
             if (NewPassword != ConfirmPassword)
             {
-                MessageBox.Show("Las contraseñas no coinciden.");
+                PopUpInfo.ShowMessage("Las contraseñas no coinciden.", _window, MessageType.Warning);
                 return;
             }
 
@@ -83,18 +83,18 @@ namespace Chasser.ViewModel
 
                 if (response.Status == "SUCCESS")
                 {
-                    MessageBox.Show("Contraseña actualizada correctamente.");
+                    PopUpInfo.ShowMessage("Contraseña actualizada correctamente.", _window, MessageType.Success);
                     _window.DialogResult = true;
                     _window.Close();
                 }
                 else
                 {
-                    MessageBox.Show("Error: " + response.Message);
+                    PopUpInfo.ShowMessage("Error: " + response.Message, _window, MessageType.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error de conexión: " + ex.Message);
+                PopUpInfo.ShowMessage("Error de conexión: " + ex.Message, _window, MessageType.Error);
             }
         }
 

@@ -19,6 +19,7 @@ using Chasser.Logic.Network;
 using Chasser.Common.Network;
 using Chasser.Logic;
 using Chasser.View;
+using Chasser.Common.Logic.Enums;
 
 namespace Chasser
 {
@@ -73,17 +74,18 @@ namespace Chasser
                     }
                     else
                     {
-                        MessageBox.Show($"Inicio de sesión fallido. Motivo: {response.Message}");
+                        PopUpInfo.ShowMessage($"Inicio de sesión fallido. Motivo: {response.Message}", Window.GetWindow(this), MessageType.Error);
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error de conexión: " + ex.Message);
+                    PopUpInfo.ShowMessage("Error de conexión: " + ex.Message, Window.GetWindow(this), MessageType.Warning);
                 }
             }
             else
             {
-                MessageBox.Show("Ambos campos deben estar completos.");
+                PopUpInfo.ShowMessage("Ambos campos deben estar completos.", Window.GetWindow(this), MessageType.Warning);
+
             }
         }
 

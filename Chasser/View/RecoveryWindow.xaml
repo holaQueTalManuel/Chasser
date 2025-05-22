@@ -3,48 +3,106 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Chasser.View" xmlns:local1="clr-namespace:Chasser.ViewModel"
         mc:Ignorable="d"
-        Title="RecoveryWindow" Height="450" Width="800">
+        Title="Recuperar contraseña" 
+        Height="500" Width="400"
+        Icon="/Imgs/logo.ico"
+WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight">
 
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryColor" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="SecondaryColor" Color="#4a6baf"/>
+        <SolidColorBrush x:Key="LightBackground" Color="#f8f1df"/>
 
-    <Grid>
-        <Border CornerRadius="16" Background="White" Padding="30" Margin="10" BorderBrush="#CCC" BorderThickness="1">
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="0,5,0,15"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="0,5,0,15"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="0,10"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource LightBackground}">
+        <Border CornerRadius="16" 
+                Background="White" 
+                Padding="30" 
+                Margin="20"
+                BorderBrush="#E0E0E0" 
+                BorderThickness="1"
+                VerticalAlignment="Center">
+
             <StackPanel>
-                <TextBlock Text="Recuperar contraseña"
+                <!-- Logo y título -->
+                <TextBlock Text="CHASSER"
                            FontSize="24"
                            FontWeight="Bold"
-                           Foreground="#2D2D30"
                            TextAlignment="Center"
-                           Margin="0,0,0,20"/>
+                           Margin="0,0,0,15"/>
 
-                <TextBlock Text="Correo electrónico" FontSize="14" Margin="10,15,0,0"/>
-                <TextBox Height="40" FontSize="16" Padding="10" Margin="0,5"
-                         Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="RECUPERAR CONTRASEÑA"
+                           FontSize="18"
+                           TextAlignment="Center"
+                           Margin="0,0,0,25"/>
 
-                <TextBlock Text="Nueva contraseña" FontSize="14" Margin="10,15,0,0"/>
-                <PasswordBox x:Name="NewPasswordBox"
-                             Height="40" FontSize="16" Padding="10" Margin="0,5"
-                             PasswordChanged="NewPasswordBox_PasswordChanged"/>
+                <!-- Formulario -->
+                <TextBlock Text="Correo electrónico" 
+                           FontWeight="SemiBold"/>
+                <TextBox Text="{Binding Email}"/>
 
-                <TextBlock Text="Confirmar contraseña" FontSize="14" Margin="10,15,0,0"/>
-                <PasswordBox x:Name="ConfirmPasswordBox"
-                             Height="40" FontSize="16" Padding="10" Margin="0,5"
-                             PasswordChanged="ConfirmPasswordBox_PasswordChanged"/>
+                <TextBlock Text="Nueva contraseña" 
+                           FontWeight="SemiBold"/>
+                <PasswordBox x:Name="NewPasswordBox"/>
 
-                <Button Content="Cambiar contraseña"
-                        Height="45" FontSize="16" Margin="0,20,0,0"
-                        Background="#2D2D30" Foreground="White"
-                        BorderBrush="Transparent"
-                        Command="{Binding ChangePasswordCommand}" />
+                <TextBlock Text="Confirmar contraseña" 
+                           FontWeight="SemiBold"/>
+                <PasswordBox x:Name="ConfirmPasswordBox"/>
 
-                <Button Content="Cancelar"
-                        Height="30" Margin="0,10,0,0"
-                        Background="Transparent" Foreground="#777"
-                        BorderBrush="Transparent"
-                        Command="{Binding CancelCommand}" />
+                <!-- Botones visibles y bien posicionados -->
+                <StackPanel Orientation="Horizontal" 
+                            HorizontalAlignment="Center"
+                            Margin="0,20">
+                    <Button Content="CANCELAR"
+                            Background="Transparent" 
+                            Foreground="#777"
+                            Command="{Binding CancelCommand}"/>
+
+                    <Button Content="CAMBIAR"
+                            Background="{StaticResource SecondaryColor}" 
+                            Foreground="White"
+                            FontWeight="Bold"
+                            Command="{Binding ChangePasswordCommand}"
+                            Margin="20,0,0,0"/>
+                </StackPanel>
             </StackPanel>
         </Border>
     </Grid>
-
 </Window>

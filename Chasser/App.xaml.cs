@@ -6,6 +6,8 @@ using Chasser.Logic.Network;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Chasser.Common.Data;
+using Chasser.Common.Logic.Enums;
+using Chasser.View;
 
 namespace Chasser
 {
@@ -36,6 +38,7 @@ namespace Chasser
                               "Error crítico",
                               MessageBoxButton.OK,
                               MessageBoxImage.Error);
+
                 Shutdown();
                 return;
             }

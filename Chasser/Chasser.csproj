@@ -11,8 +11,10 @@
   <ItemGroup>
     <None Remove="Imgs\board.png" />
     <None Remove="Imgs\caballo-ajedrez-95114.mp3" />
+    <None Remove="Imgs\errorIcon.png" />
     <None Remove="Imgs\horse.png" />
     <None Remove="Imgs\horseWpng.png" />
+    <None Remove="Imgs\infoIcon.png" />
     <None Remove="Imgs\logo.ico" />
     <None Remove="Imgs\logo.jpg" />
     <None Remove="Imgs\peonB.png" />
@@ -20,6 +22,8 @@
     <None Remove="Imgs\realBoard.png" />
     <None Remove="Imgs\sanB.png" />
     <None Remove="Imgs\sanW.png" />
+    <None Remove="Imgs\successicon.png" />
+    <None Remove="Imgs\warning.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,8 +35,14 @@
     <Resource Include="Imgs\caballo-ajedrez-95114.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Imgs\errorIcon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\horse.png" />
     <Resource Include="Imgs\horseWpng.png" />
+    <Resource Include="Imgs\infoIcon.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\logo.ico" />
     <Resource Include="Imgs\logo.jpg" />
     <Resource Include="Imgs\peonB.png" />
@@ -40,6 +50,12 @@
     <Resource Include="Imgs\realBoard.png" />
     <Resource Include="Imgs\sanB.png" />
     <Resource Include="Imgs\sanW.png" />
+    <Resource Include="Imgs\successicon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\warning.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>
