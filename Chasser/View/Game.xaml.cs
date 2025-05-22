@@ -434,7 +434,7 @@ namespace Chasser
 
         private void ShowHighlights()
         {
-            var highlightColor = new SolidColorBrush(Color.FromArgb(150, 135, 206, 250));
+            var highlightColor = new SolidColorBrush(System.Windows.Media.Color.FromArgb(150, 135, 206, 250));
             foreach (var pos in moveCache.Keys)
             {
                 highlights[pos.Row, pos.Column].Fill = highlightColor;
