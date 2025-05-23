@@ -27,10 +27,10 @@ namespace Chasser.View
 
             string iconPath = type switch
             {
-                MessageType.Info => "/Imgs/infoIcon.png",
+                MessageType.Info => "/Imgs/infoReal.png",
                 MessageType.Warning => "/Imgs/warning.png",
-                MessageType.Error => "/Imgs/erroricon.png",
-                MessageType.Success => "/Imgs/sucessicon.png",
+                MessageType.Error => "/Imgs/errorReal.png",
+                MessageType.Success => "/Imgs/sucessReal.png",
                 _ => "/Imgs/infoIcon.png"
             };
 

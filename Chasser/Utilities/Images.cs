@@ -15,16 +15,16 @@ namespace Chasser.Utilities
     {
         private static readonly Dictionary<PieceType, ImageSource> whiteSources = new()
         {
-            {PieceType.Obliterador, LoadImage("/Imgs/horseWpng.png") },
-            { PieceType.Tonel, LoadImage("/Imgs/peonW.png") },
-            {PieceType.Sanguijuela, LoadImage("/Imgs/sanW.png") }
+            {PieceType.Obliterador, LoadImage("/Imgs/horseSinRelleno.png") },
+            { PieceType.Tonel, LoadImage("/Imgs/tonelSinRelleno.png") },
+            {PieceType.Sanguijuela, LoadImage("/Imgs/sanguiRealFor.png") }
         };
         
         private static readonly Dictionary<PieceType, ImageSource> blackSources = new()
         {
-            {PieceType.Obliterador, LoadImage("/Imgs/horse.png") },
-            { PieceType.Tonel, LoadImage("/Imgs/peonB.png") },
-            {PieceType.Sanguijuela, LoadImage("/Imgs/sanB.png") }
+            {PieceType.Obliterador, LoadImage("/Imgs/horseReal3.png") },
+            { PieceType.Tonel, LoadImage("/Imgs/tonelConRelleno.png") },
+            {PieceType.Sanguijuela, LoadImage("/Imgs/sangui2.png") }
         };
 
         public static ImageSource GetImage(Player color, PieceType type)

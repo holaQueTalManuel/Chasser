@@ -12,18 +12,39 @@
     <None Remove="Imgs\board.png" />
     <None Remove="Imgs\caballo-ajedrez-95114.mp3" />
     <None Remove="Imgs\errorIcon.png" />
+    <None Remove="Imgs\errorReal.png" />
     <None Remove="Imgs\horse.png" />
+    <None Remove="Imgs\horsePruebaGold.png" />
+    <None Remove="Imgs\horsePruebaGold2.png" />
+    <None Remove="Imgs\horseReal3.png" />
+    <None Remove="Imgs\horseSinRelleno.png" />
     <None Remove="Imgs\horseWpng.png" />
     <None Remove="Imgs\infoIcon.png" />
+    <None Remove="Imgs\infoReal.png" />
     <None Remove="Imgs\logo.ico" />
     <None Remove="Imgs\logo.jpg" />
+    <None Remove="Imgs\peon2.png" />
     <None Remove="Imgs\peonB.png" />
     <None Remove="Imgs\peonW.png" />
     <None Remove="Imgs\realBoard.png" />
     <None Remove="Imgs\sanB.png" />
+    <None Remove="Imgs\sangui2.png" />
+    <None Remove="Imgs\sanguiRealFor.png" />
+    <None Remove="Imgs\sanguiRealTalk.png" />
     <None Remove="Imgs\sanW.png" />
     <None Remove="Imgs\successicon.png" />
+    <None Remove="Imgs\successReal.png" />
+    <None Remove="Imgs\tonel.png" />
+    <None Remove="Imgs\tonel3.png" />
+    <None Remove="Imgs\tonelConRelleno.png" />
+    <None Remove="Imgs\tonelSinRelleno.png" />
     <None Remove="Imgs\warning.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Imgs\horsePruebaGold.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>
@@ -42,20 +63,60 @@
     <Resource Include="Imgs\errorIcon.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Imgs\errorReal.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\horse.png" />
+    <Resource Include="Imgs\horsePruebaGold2.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\horseReal3.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\horseSinRelleno.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\horseWpng.png" />
     <Resource Include="Imgs\infoIcon.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Imgs\infoReal.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\logo.ico" />
     <Resource Include="Imgs\logo.jpg" />
+    <Resource Include="Imgs\peon2.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\peonB.png" />
     <Resource Include="Imgs\peonW.png" />
     <Resource Include="Imgs\realBoard.png" />
     <Resource Include="Imgs\sanB.png" />
+    <Resource Include="Imgs\sangui2.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\sanguiRealFor.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\sanguiRealTalk.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Imgs\sanW.png" />
     <Resource Include="Imgs\successicon.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\successReal.png" />
+    <Resource Include="Imgs\tonel.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\tonel3.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\tonelConRelleno.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Imgs\tonelSinRelleno.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Imgs\warning.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
