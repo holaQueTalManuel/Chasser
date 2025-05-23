@@ -1,0 +1,116 @@
+﻿<Page x:Class="Chasser.View.RankingPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Chasser"
+      mc:Ignorable="d" 
+      d:DesignHeight="700" d:DesignWidth="900"
+      Title="Ranking de Jugadores">
+
+    <Page.Resources>
+        <!-- Colores de taberna -->
+        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
+        <SolidColorBrush x:Key="LightBrown" Color="#D2B48C" />
+        <SolidColorBrush x:Key="DarkBrown" Color="#8B4513" />
+        <SolidColorBrush x:Key="TableHeader" Color="#5C3317" />
+        <SolidColorBrush x:Key="TableText" Color="#2E1C0E" />
+
+        <!-- Estilo para el ListView -->
+        <Style TargetType="ListView">
+            <Setter Property="Background" Value="#F5DEB3"/>
+            <Setter Property="BorderBrush" Value="#8B4513"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FontFamily" Value="Georgia"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#2E1C0E"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+
+        <!-- Estilo para encabezados GridView -->
+        <Style TargetType="GridViewColumnHeader">
+            <Setter Property="Background" Value="#8B4513"/>
+            <Setter Property="Foreground" Value="Beige"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontFamily" Value="Georgia"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+    </Page.Resources>
+
+    <Grid Background="{StaticResource SoftBeige}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Button Content="← Volver"
+            Click="OnBackButtonClicked"
+            FontFamily="Georgia"
+            FontWeight="Bold"
+            Background="{StaticResource DarkBrown}"
+            Foreground="Beige"
+            BorderBrush="#5C3317"
+            BorderThickness="2"
+            Padding="8,4"
+            Width="100"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="20,20,0,0">
+            <Button.Effect>
+                <DropShadowEffect BlurRadius="5" Opacity="0.3"/>
+            </Button.Effect>
+        </Button>
+
+        <!-- Logo y título -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+            <Image Source="/Imgs/logo.jpg"
+                   Width="100" Height="100"
+                   HorizontalAlignment="Center"
+                   Margin="0,40,0,10"/>
+
+            <TextBlock Text="Ranking de Jugadores"
+                       FontSize="30"
+                       FontWeight="Bold"
+                       FontFamily="Georgia"
+                       Foreground="{StaticResource DarkBrown}"
+                       TextAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Contenedor principal -->
+        <Border Grid.Row="1"
+                CornerRadius="16"
+                Padding="30"
+                Background="{StaticResource LightBrown}"
+                Width="550"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                BorderBrush="{StaticResource DarkBrown}"
+                BorderThickness="3"
+                Margin="0,20,0,40">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Lista de jugadores -->
+                <ListView Grid.Row="0"
+                          ItemsSource="{Binding Players}"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Pos" Width="50" 
+                                            DisplayMemberBinding="{Binding Position}" />
+                            <GridViewColumn Header="Jugador" Width="250" 
+                                            DisplayMemberBinding="{Binding Username}" />
+                            <GridViewColumn Header="Victorias" Width="80" 
+                                            DisplayMemberBinding="{Binding Wins}" />
+                            <GridViewColumn Header="Win %" Width="80" 
+                                            DisplayMemberBinding="{Binding WinRate, StringFormat={}{0:F2}%}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

@@ -144,6 +144,9 @@ namespace Chasser.Logic.Network
                         case "EXIT_GAME":
                             await HandleExitGame(writer, client);
                             break;
+                        case "GET_RANKING":
+                            await HandleRanking(msg.Data, writer);
+                            break;
                         default:
                             _logger.Warning("Comando no reconocido de {ClientIp}: {Command}", clientIp, msg.Command);
                             break;
@@ -179,6 +182,101 @@ namespace Chasser.Logic.Network
                     _logger.Error(ex, "Error liberando recursos del cliente {ClientIp}", clientIp);
                 }
             }
+        }
+
+        private async Task HandleRanking(Dictionary<string, string> data, StreamWriter writer)
+        {
+            _logger.Information("Procesando GET_RANKING...");
+
+            // Validación del token
+            if (!data.ContainsKey("token"))
+            {
+                _logger.Warning("Falta token en GET_RANKING");
+                await SendJsonAsync(writer, "RANKING_FAIL", "Token necesario");
+                return;
+            }
+
+            string token = data["token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.Warning("Token vacío en GET_RANKING");
+                await SendJsonAsync(writer, "RANKING_FAIL", "Token vacío");
+                return;
+            }
+
+            Usuario user = await ValidateToken(token);
+            if (user == null)
+            {
+                _logger.Warning("Token inválido en GET_RANKING");
+                await SendJsonAsync(writer, "RANKING_FAIL", "Token inválido o expirado");
+                return;
+            }
+
+            _logger.Information("Usuario validado para ranking: {UserId}", user.Id);
+
+            try
+            {
+                // Obtener top 10 jugadores ordenados por partidas ganadas
+                var topPlayers = await _context.Usuarios
+                    .OrderByDescending(u => u.Partidas_Ganadas)
+                    .Take(10)
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.Nombre    ,
+                        u.Partidas_Ganadas,
+                        u.Partidas_Jugadas
+                    })
+                    .ToListAsync();
+
+                // Preparar datos del ranking
+                var rankingData = new List<Dictionary<string, string>>();
+                int position = 1;
+
+                foreach (var player in topPlayers)
+                {
+                    string winRate = player.Partidas_Jugadas > 0
+                        ? ((player.Partidas_Ganadas * 100.0) / player.Partidas_Jugadas).ToString()
+                        : "0.0";
+
+                    rankingData.Add(new Dictionary<string, string>
+                    {
+                        { "position", position.ToString() },
+                        { "username", player.Nombre },
+                        { "wins", player.Partidas_Ganadas.ToString() },
+                        { "games_played", player.Partidas_Jugadas.ToString() },
+                        { "win_rate", winRate }
+                    });
+
+                    position++;
+                }
+
+                // Enviar respuesta exitosa
+                await SendJsonObjectAsync(writer, "RANKING_SUCCESS", "Ranking obtenido", new Dictionary<string, JsonElement>
+                {
+                    { "ranking", ToJsonElement(rankingData) },
+                    { "current_user_position", ToJsonElement(await GetUserPosition(user.Id)) }
+                });
+
+                _logger.Information("Ranking enviado exitosamente");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error al procesar GET_RANKING");
+                await SendJsonAsync(writer, "RANKING_FAIL", "Error interno al obtener ranking");
+            }
+        }
+
+        // Método auxiliar para obtener la posición global del usuario actual
+        private async Task<int> GetUserPosition(int userId)
+        {
+            var userWins = await _context.Usuarios
+                .Where(u => u.Id == userId)
+                .Select(u => u.Partidas_Ganadas)
+                .FirstOrDefaultAsync();
+
+            return await _context.Usuarios
+                .CountAsync(u => u.Partidas_Ganadas > userWins) + 1;
         }
 
         private async Task HandleRecoverPassword(Dictionary<string, string> data, StreamWriter writer)
@@ -496,7 +594,7 @@ namespace Chasser.Logic.Network
                     user.Racha_Victorias = 0;
                     _logger.Information("Usuario {UserId} perdió la partida", user.Id);
                 }
-
+                user.Partidas_Jugadas++;
                 _context.Usuarios.Update(user);
                 await _context.SaveChangesAsync();
                 _logger.Debug("Estadísticas actualizadas para {UserId}", user.Id);
@@ -814,6 +912,20 @@ namespace Chasser.Logic.Network
             await writer.WriteLineAsync(json);
         }
 
+        private async Task SendJsonObjectAsync(StreamWriter writer, string status, string message, Dictionary<string, JsonElement>? data = null)
+        {
+            var response = new ResponseMessageObject
+            {
+                Status = status,
+                Message = message,
+                Data = data
+            };
+
+            string json = JsonSerializer.Serialize(response);
+            _logger.Debug("Enviando respuesta: {Response}", json);
+            await writer.WriteLineAsync(json);
+        }
+
         public async Task<Usuario> ValidateToken(string token)
         {
             if (string.IsNullOrEmpty(token))
@@ -837,6 +949,12 @@ namespace Chasser.Logic.Network
             _logger.Debug("Token validado para {UserId}", sesion.Usuario.Id);
 
             return sesion.Usuario;
+        }
+        private JsonElement ToJsonElement(object obj)
+        {
+            var json = JsonSerializer.Serialize(obj);
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.Clone();
         }
     }
 

@@ -96,6 +96,29 @@ namespace Chasser.Logic.Network
                 //streamLock.Release(); // ⚠️ IMPORTANTE
             }
         }
+        public static async Task<string> ReceiveMessageAsyncRaw()
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Cliente no conectado al servidor");
+
+            try
+            {
+                string responseJson = await _reader.ReadLineAsync();
+
+                if (string.IsNullOrEmpty(responseJson))
+                {
+                    throw new Exception("El servidor cerró la conexión");
+                }
+
+                return responseJson;
+            }
+            catch (Exception ex)
+            {
+                Disconnect();
+                throw new Exception("Error al recibir mensaje del servidor", ex);
+            }
+        }
+
 
 
 

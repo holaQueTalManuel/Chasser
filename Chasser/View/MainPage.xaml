@@ -57,9 +57,13 @@
 
             
 
-            <Button Content="Juega contra IA"
+            <Button Content="Jugar"
                 Style="{StaticResource MainButtonStyle}"
                 Click="Start_Game_IA_Click"/>
+            
+            <Button Content="Ver Ranking"
+                Style="{StaticResource MainButtonStyle}"
+                Click="Show_Ranking_Click"/>
 
             <Button Content="Salir"
                 Style="{StaticResource MainButtonStyle}"

@@ -42,6 +42,32 @@ namespace Chasser.Common.Logic.Board
             this[0, 6] = new Tonel(Player.Black);
             this[6, 6] = new Obliterador(Player.White);
         }
+        public IEnumerable<(Position pos, Piece piece)> AllPieces()
+        {
+            for (int row = 0; row < 7; row++)
+            {
+                for (int col = 0; col < 7; col++)
+                {
+                    var piece = pieces[row, col];
+                    if (piece != null)
+                    {
+                        yield return (new Position(row, col), piece);
+                    }
+                }
+            }
+        }
+
+        public bool SoloQuedanSanguijuelas()
+        {
+            var sanguijuelas = AllPieces()
+                .Where(p => p.piece is Sanguijuela)
+                .Select(p => (Sanguijuela)p.piece)
+                .ToList();
+
+            return sanguijuelas.Count == 2 &&
+                   sanguijuelas[0].Color != sanguijuelas[1].Color &&
+                   AllPieces().Count() == 2;
+        }
         public static bool isInside(Position pos)
         {
             return pos.Row >= 0 && pos.Row < 7 

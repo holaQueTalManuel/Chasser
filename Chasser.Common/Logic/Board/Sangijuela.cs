@@ -92,9 +92,38 @@ namespace Chasser.Common.Logic.Board
             }
         }
 
+
         public override IEnumerable<Move> GetMoves(Position from, Board board)
         {
-            return ForwardMoves(from, board);
+            foreach (var move in ForwardMoves(from, board))
+                yield return move;
+
+            if (board.SoloQuedanSanguijuelas())
+            {
+                foreach (var move in DiagonalCaptures(from, board))
+                    yield return move;
+            }
         }
+        private IEnumerable<Move> DiagonalCaptures(Position from, Board board)
+        {
+            // Direcciones diagonales: NE, NW, SE, SW
+            var diagonals = new[] {
+                new Position(-1, -1), new Position(-1, 1),
+                new Position(1, -1), new Position(1, 1)
+            };
+
+            foreach (var offset in diagonals)
+            {
+                var targetPos = new Position(from.Row + offset.Row, from.Column + offset.Column);
+                if (!Board.isInside(targetPos)) continue;
+
+                var target = board[targetPos];
+                if (target is Sanguijuela && target.Color != this.Color)
+                {
+                    yield return new NormalMove(from, targetPos);
+                }
+            }
+        }
+
     }
 }

@@ -15,6 +15,7 @@ namespace Chasser.Common.Model
         public string Contrasenia { get; set; }
         public int? Partidas_Ganadas { get; set; }
         public int? Racha_Victorias { get; set; }
+        public int? Partidas_Jugadas { get; set; }
         public ICollection<Sesion_Usuario> Sesiones { get; set; }
         public DateTime Fecha_Creacion { get; set; }
     }
