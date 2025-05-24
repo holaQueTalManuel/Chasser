@@ -8,7 +8,7 @@ using Chasser.Common.Logic.Enums;
 using Chasser.Common.Network;
 using Chasser.Logic;
 using Chasser.Logic.Network;
-using Chasser.View; 
+using Chasser.View;
 
 namespace Chasser.ViewModels
 {
@@ -37,6 +37,25 @@ namespace Chasser.ViewModels
             get => _confirmPassword;
             set { _confirmPassword = value; OnPropertyChanged(); }
         }
+        private bool _isNewPasswordVisible;
+        public bool IsNewPasswordVisible
+        {
+            get => _isNewPasswordVisible;
+            set { _isNewPasswordVisible = value; OnPropertyChanged(); OnPropertyChanged(nameof(NewPasswordEyeIcon)); }
+        }
+
+        private bool _isConfirmPasswordVisible;
+        public bool IsConfirmPasswordVisible
+        {
+            get => _isConfirmPasswordVisible;
+            set { _isConfirmPasswordVisible = value; OnPropertyChanged(); OnPropertyChanged(nameof(ConfirmPasswordEyeIcon)); }
+        }
+
+        public string NewPasswordEyeIcon => IsNewPasswordVisible ? "🙈" : "👁️";
+        public string ConfirmPasswordEyeIcon => IsConfirmPasswordVisible ? "🙈" : "👁️";
+
+        public ICommand ToggleNewPasswordVisibilityCommand { get; }
+        public ICommand ToggleConfirmPasswordVisibilityCommand { get; }
 
         public ICommand ChangePasswordCommand { get; }
         public ICommand CancelCommand { get; }
@@ -48,6 +67,10 @@ namespace Chasser.ViewModels
             _window = window;
             ChangePasswordCommand = new RelayCommand(ChangePassword);
             CancelCommand = new RelayCommand(Cancel);
+
+            ToggleNewPasswordVisibilityCommand = new RelayCommand(() => IsNewPasswordVisible = !IsNewPasswordVisible);
+            ToggleConfirmPasswordVisibilityCommand = new RelayCommand(() => IsConfirmPasswordVisible = !IsConfirmPasswordVisible);
+
         }
 
         private async void ChangePassword()

@@ -65,9 +65,9 @@ namespace Chasser.Common.Logic.Board
                 return false;
 
             // No puede capturar a otra Sanguijuela
-            
 
-            
+
+
 
             // Solo puede capturar a Tonel u Obliterador
             return target.Type == PieceType.Tonel || target.Type == PieceType.Obliterador;
@@ -92,38 +92,9 @@ namespace Chasser.Common.Logic.Board
             }
         }
 
-
         public override IEnumerable<Move> GetMoves(Position from, Board board)
         {
-            foreach (var move in ForwardMoves(from, board))
-                yield return move;
-
-            if (board.SoloQuedanSanguijuelas())
-            {
-                foreach (var move in DiagonalCaptures(from, board))
-                    yield return move;
-            }
+            return ForwardMoves(from, board);
         }
-        private IEnumerable<Move> DiagonalCaptures(Position from, Board board)
-        {
-            // Direcciones diagonales: NE, NW, SE, SW
-            var diagonals = new[] {
-                new Position(-1, -1), new Position(-1, 1),
-                new Position(1, -1), new Position(1, 1)
-            };
-
-            foreach (var offset in diagonals)
-            {
-                var targetPos = new Position(from.Row + offset.Row, from.Column + offset.Column);
-                if (!Board.isInside(targetPos)) continue;
-
-                var target = board[targetPos];
-                if (target is Sanguijuela && target.Color != this.Color)
-                {
-                    yield return new NormalMove(from, targetPos);
-                }
-            }
-        }
-
     }
 }

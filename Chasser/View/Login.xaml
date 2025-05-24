@@ -6,7 +6,8 @@
       xmlns:local="clr-namespace:Chasser"
       mc:Ignorable="d" 
       d:DesignHeight="700" d:DesignWidth="900"
-      Title="Login">
+      Title="Login"
+      Loaded="Page_Loaded">
 
     <Page.Resources>
         <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
@@ -30,6 +31,58 @@
             <Setter Property="BorderBrush" Value="#D0D0D0"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
+
+        <DropShadowEffect x:Key="DropShadowEffect" BlurRadius="10" ShadowDepth="4" Opacity="0.3"/>
+
+        <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3D3D40"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Height" Value="50"/>
+            <Setter Property="Width" Value="200"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Margin" Value="0,10"/>
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+
+        <Storyboard x:Key="FadeInStoryboard">
+            <DoubleAnimation Storyboard.TargetName="LoginCard"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1"
+                             Duration="0:0:0.7"/>
+        </Storyboard>
+
+        <Storyboard x:Key="LogoZoomStoryboard">
+            <DoubleAnimation Storyboard.TargetName="LogoImage"
+                             Storyboard.TargetProperty="RenderTransform.ScaleX"
+                             From="0.8" To="1"
+                             Duration="0:0:0.5"/>
+            <DoubleAnimation Storyboard.TargetName="LogoImage"
+                             Storyboard.TargetProperty="RenderTransform.ScaleY"
+                             From="0.8" To="1"
+                             Duration="0:0:0.5"/>
+        </Storyboard>
     </Page.Resources>
 
     <Grid Background="{StaticResource SoftBeige}">
@@ -39,120 +92,114 @@
         </Grid.RowDefinitions>
 
         <!-- Logo -->
-        <Image Source="/Imgs/logo.jpg"
+        <Image x:Name="LogoImage"
+               Source="/Imgs/logo.jpg"
                Width="100" Height="100"
                HorizontalAlignment="Center"
-               Margin="0,40,0,0"/>
+               Margin="0,40,0,0"
+               RenderTransformOrigin="0.5,0.5">
+            <Image.RenderTransform>
+                <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+            </Image.RenderTransform>
+        </Image>
 
         <!-- Login Form -->
-        <Border Grid.Row="1"
-                CornerRadius="16"
-                Padding="30"
-                Background="White"
-                Width="350"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-            <StackPanel>
-                <TextBlock Text="Inicia sesión para jugar"
-                           FontSize="26"
-                           FontWeight="Bold"
-                           Foreground="#333"
-                           TextAlignment="Center"
-                           Margin="0,0,0,20"/>
+        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border x:Name="LoginCard"
+                    CornerRadius="16"
+                    Padding="30"
+                    Background="White"
+                    Width="350"
+                    Opacity="0"
+                    Effect="{StaticResource DropShadowEffect}">
+                <StackPanel>
+                    <TextBlock Text="Inicia sesión para jugar"
+                               FontSize="26"
+                               FontWeight="Bold"
+                               Foreground="#333"
+                               TextAlignment="Center"
+                               Margin="0,0,0,20"/>
 
-                <!-- Usuario -->
-                <Grid>
-                    <TextBox x:Name="UsernameBox"
-                             Style="{StaticResource TextBoxStyle}"
-                             TextChanged="UsernameBox_TextChanged"
-                             GotFocus="UsernameBox_GotFocus"
-                             LostFocus="UsernameBox_LostFocus"/>
-                    <TextBlock x:Name="UsernamePlaceholder"
-                               Text="Nombre de usuario"
-                               Foreground="Gray"
-                               Margin="14,0,0,0"
-                               VerticalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Visibility="Visible"/>
-                </Grid>
+                    <!-- Usuario -->
+                    <Grid>
+                        <TextBox x:Name="UsernameBox"
+                                 Style="{StaticResource TextBoxStyle}"
+                                 TextChanged="UsernameBox_TextChanged"
+                                 GotFocus="UsernameBox_GotFocus"
+                                 LostFocus="UsernameBox_LostFocus"/>
+                        <TextBlock x:Name="UsernamePlaceholder"
+                                   Text="Nombre de usuario"
+                                   Foreground="Gray"
+                                   Margin="14,0,0,0"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Visibility="Visible"/>
+                    </Grid>
 
-                <!-- Contraseña -->
-                <Grid>
-                    <!-- PasswordBox (por defecto) -->
-                    <PasswordBox x:Name="PasswordBox"
-                                 Style="{StaticResource PasswordBoxStyle}"
-                                 PasswordChanged="PasswordBox_PasswordChanged"
-                                 GotFocus="PasswordBox_GotFocus"
-                                 LostFocus="PasswordBox_LostFocus"
-                                 Visibility="Visible"/>
+                    <!-- Contraseña -->
+                    <Grid>
+                        <PasswordBox x:Name="PasswordBox"
+                                     Style="{StaticResource PasswordBoxStyle}"
+                                     PasswordChanged="PasswordBox_PasswordChanged"
+                                     GotFocus="PasswordBox_GotFocus"
+                                     LostFocus="PasswordBox_LostFocus"
+                                     Visibility="Visible"/>
 
-                    <!-- TextBox para mostrar contraseña (cuando se activa el ojo) -->
-                    <TextBox x:Name="PasswordTextBox"
-                             Style="{StaticResource TextBoxStyle}"
-                             Visibility="Collapsed"
-                             TextChanged="PasswordTextBox_TextChanged"
-                             GotFocus="PasswordTextBox_GotFocus"
-                             LostFocus="PasswordTextBox_LostFocus"/>
+                        <TextBox x:Name="PasswordTextBox"
+                                 Style="{StaticResource TextBoxStyle}"
+                                 Visibility="Collapsed"
+                                 TextChanged="PasswordTextBox_TextChanged"
+                                 GotFocus="PasswordTextBox_GotFocus"
+                                 LostFocus="PasswordTextBox_LostFocus"/>
 
-                    <!-- Placeholder -->
-                    <TextBlock x:Name="PasswordPlaceholder"
-                               Text="Contraseña"
-                               Foreground="Gray"
-                               Margin="14,0,0,0"
-                               VerticalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Visibility="Visible"/>
+                        <TextBlock x:Name="PasswordPlaceholder"
+                                   Text="Contraseña"
+                                   Foreground="Gray"
+                                   Margin="14,0,0,0"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Visibility="Visible"/>
 
-                    <!-- Botón del ojo -->
-                    <Button x:Name="TogglePasswordButton"
-                        Content="👁️"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Width="30" Height="30"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Margin="0,0,10,0"
-                        FontSize="20"
-                        Cursor="Hand"
-                        Click="TogglePasswordVisibility"/>
-                    
-                </Grid>
-                <TextBlock Text="¿Olvidaste tu contraseña?"
-                    Foreground="#2D2D30"
-                    FontWeight="SemiBold"
-                    TextAlignment="Center"
-                    Margin="0,10,0,0"
-                    Cursor="Hand"
-                    TextDecorations="Underline"
-                    MouseLeftButtonUp="ForgotPassword_Click"/>
+                        <Button x:Name="TogglePasswordButton"
+                                Content="🙈"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Width="30" Height="30"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                Margin="0,0,10,0"
+                                FontSize="20"
+                                Cursor="Hand"
+                                Click="TogglePasswordVisibility"/>
+                    </Grid>
 
-                <!-- Botón de login -->
-                <Button Content="Iniciar Sesión"
-                        Height="45"
-                        FontSize="16"
-                        Margin="0,20,0,0"
-                        Background="#2D2D30"
-                        Foreground="White"
-                        BorderBrush="Transparent"
-                        Cursor="Hand"
-                        BorderThickness="0"
-                        Padding="10"
-                        Click="Login_Click"
-                        IsDefault="True"/>
-
-                <!-- Registro -->
-                <StackPanel Orientation="Horizontal" 
-                            HorizontalAlignment="Center" 
-                            Margin="0,15,0,0">
-                    <TextBlock Text="¿No tienes cuenta? " Foreground="#555"/>
-                    <TextBlock Text="Regístrate" 
+                    <TextBlock Text="¿Olvidaste tu contraseña?"
                                Foreground="#2D2D30"
                                FontWeight="SemiBold"
+                               TextAlignment="Center"
+                               Margin="0,10,0,0"
                                Cursor="Hand"
                                TextDecorations="Underline"
-                               MouseLeftButtonUp="RegisterLink_Click"/>
+                               MouseLeftButtonUp="ForgotPassword_Click"/>
+
+                    <Button Content="Iniciar Sesión"
+                            Style="{StaticResource MainButtonStyle}"
+                            Click="Login_Click"
+                            IsDefault="True"/>
+
+                    <StackPanel Orientation="Horizontal" 
+                                HorizontalAlignment="Center" 
+                                Margin="0,15,0,0">
+                        <TextBlock Text="¿No tienes cuenta? " Foreground="#555"/>
+                        <TextBlock Text="Regístrate" 
+                                   Foreground="#2D2D30"
+                                   FontWeight="SemiBold"
+                                   Cursor="Hand"
+                                   TextDecorations="Underline"
+                                   MouseLeftButtonUp="RegisterLink_Click"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
-        </Border>
+            </Border>
+        </Grid>
     </Grid>
 </Page>

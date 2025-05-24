@@ -9,9 +9,26 @@
       Title="MainPage">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
-
         <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3D3D40"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Height" Value="50"/>
             <Setter Property="Width" Value="200"/>
             <Setter Property="FontSize" Value="16"/>
@@ -20,54 +37,91 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
 
         <Style x:Key="TitleTextStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontSize" Value="28"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="#2D2D30"/>
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,0,0,20"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
+
+        <DropShadowEffect x:Key="DropShadowEffect" BlurRadius="10" ShadowDepth="4" Opacity="0.3"/>
+        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df" />
+
     </Page.Resources>
 
-    <Grid Background="{StaticResource SoftBeige}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Border BorderBrush="#8B5E3C"
+            BorderThickness="15"
+            CornerRadius="0"
+            Background="White"
+            Padding="15"
+            Margin="0">
 
-        <!-- Logo -->
-        <Image Source="/Imgs/logo.jpg"
-               Width="120" Height="120"
-               Margin="0,20,0,10"
-               HorizontalAlignment="Center"/>
+        <Grid Background="{StaticResource SoftBeige}">
+            <!-- Fondo degradado -->
 
-        <!-- Contenido principal -->
-        <StackPanel Grid.Row="1"
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Logo -->
+            <Image Source="/Imgs/logo.jpg"
+           Width="120" Height="120"
+           Margin="0,20,0,10"
+           HorizontalAlignment="Center"/>
+
+            <!-- Contenido principal dentro de una tarjeta -->
+            <Border Grid.Row="1"
+            Background="White"
+            CornerRadius="16"
+            Padding="20"
+            Margin="20"
+            Effect="{StaticResource DropShadowEffect}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top">
+
+                <StackPanel x:Name="MainContent"
                     VerticalAlignment="Top"
                     HorizontalAlignment="Center"
-                    Margin="0,40,0,0">
+                    Opacity="0">
+                    <StackPanel.Triggers>
+                        <EventTrigger RoutedEvent="StackPanel.Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0" To="1"
+                                             Duration="0:0:1"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </StackPanel.Triggers>
 
-            <TextBlock Text="Bienvenido a Chasser"
+                    <TextBlock Text="Bienvenido a Chasser"
                        Style="{StaticResource TitleTextStyle}"/>
 
-            
+                    <Button Content="Jugar"
+                    Style="{StaticResource MainButtonStyle}"
+                    Click="Start_Game_IA_Click"/>
 
-            <Button Content="Jugar"
-                Style="{StaticResource MainButtonStyle}"
-                Click="Start_Game_IA_Click"/>
-            
-            <Button Content="Ver Ranking"
-                Style="{StaticResource MainButtonStyle}"
-                Click="Show_Ranking_Click"/>
+                    <Button Content="Ver Ranking"
+                    Style="{StaticResource MainButtonStyle}"
+                    Click="Show_Ranking_Click"/>
 
-            <Button Content="Salir"
-                Style="{StaticResource MainButtonStyle}"
-                Click="Exit_Click"/>
-        </StackPanel>
-    </Grid>
+                    <Button Content="Cerrar Sesión"
+                    Style="{StaticResource MainButtonStyle}"
+                    Click="Exit_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+
+
 </Page>

@@ -7,7 +7,6 @@
         SizeToContent="WidthAndHeight"
         WindowStyle="None"
         Background="Transparent"
-        AllowsTransparency="True"
         ShowInTaskbar="False">
 
     <Window.Resources>
@@ -25,7 +24,7 @@
                 BorderThickness="1">
             <Border.Effect>
                 <DropShadowEffect Color="Black"
-                                  BlurRadius="20"
+                                  BlurRadius="0"
                                   ShadowDepth="0"
                                   Opacity="0.8"/>
             </Border.Effect>
@@ -66,7 +65,7 @@
                         Cursor="Hand"
                         Click="AcceptButton_Click"/>
 
-                
+
             </StackPanel>
         </Border>
     </Grid>

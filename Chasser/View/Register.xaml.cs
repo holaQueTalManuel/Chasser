@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 using Chasser.Common.Logic.Enums;
 using Chasser.Common.Network;
@@ -267,6 +268,11 @@ namespace Chasser
         private void ConfirmPasswordTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             UpdateConfirmPasswordPlaceholder();
+        }
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            Storyboard sb = (Storyboard)this.FindResource("FadeInStoryboard");
+            sb.Begin(this);
         }
     }
 }

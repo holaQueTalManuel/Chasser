@@ -20,6 +20,7 @@ using Chasser.Common.Network;
 using Chasser.Logic;
 using Chasser.View;
 using Chasser.Common.Logic.Enums;
+using System.Windows.Media.Animation;
 
 namespace Chasser
 {
@@ -38,7 +39,11 @@ namespace Chasser
 
 
         }
-
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            ((Storyboard)this.Resources["FadeInStoryboard"]).Begin();
+            ((Storyboard)this.Resources["LogoZoomStoryboard"]).Begin();
+        }
         private void Login_Loaded(object sender, RoutedEventArgs e)
         {
             (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(900, 600);

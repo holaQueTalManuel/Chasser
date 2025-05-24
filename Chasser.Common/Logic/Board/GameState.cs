@@ -114,6 +114,11 @@ namespace Chasser.Common.Logic.Board
             {
                 eliminations[CurrentPlayer]++;
                 Console.WriteLine($"[{CurrentPlayer}] ha capturado una pieza. Total eliminadas: {eliminations[CurrentPlayer]}");
+
+                if (Board[move.FromPos] is Obliterador obliterador)
+                {
+                    obliterador.HasCaptured = true;
+                }
             }
 
             CurrentPlayer = CurrentPlayer.Opponent();

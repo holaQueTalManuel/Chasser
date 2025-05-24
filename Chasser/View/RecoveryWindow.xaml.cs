@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Media.Animation;
 using Chasser.ViewModel;
 
 namespace Chasser.View
@@ -10,7 +11,11 @@ namespace Chasser.View
             InitializeComponent();
             DataContext = new RecoveryViewModel(this);
         }
-
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            Storyboard sb = (Storyboard)this.FindResource("FadeInStoryboard");
+            sb.Begin(this);
+        }
         private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (DataContext is RecoveryViewModel vm)

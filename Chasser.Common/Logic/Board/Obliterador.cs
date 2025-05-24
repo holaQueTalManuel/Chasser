@@ -47,7 +47,7 @@ namespace Chasser.Common.Logic.Board
             {
                 return false;
             }
-            HasCaptured = true;
+            //HasCaptured = true;
             return board[pos].Color != Color;
         }
 
@@ -94,7 +94,7 @@ namespace Chasser.Common.Logic.Board
                     {
                         if (board[to].Color != Color)
                         {
-                            HasCaptured = true;
+                            //HasCaptured = true;
                             yield return new NormalMove(from, to); // captura
                         }
                    

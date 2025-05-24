@@ -7,14 +7,21 @@
         Title="Recuperar contraseña" 
         Height="500" Width="400"
         Icon="/Imgs/logo.ico"
-WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight">
+        Loaded="Window_Loaded"
+        Background="#f8f1df"
+        >
 
     <Window.Resources>
+        <Storyboard x:Key="FadeInStoryboard">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:1"/>
+        </Storyboard>
+
         <SolidColorBrush x:Key="PrimaryColor" Color="#2D2D30"/>
         <SolidColorBrush x:Key="SecondaryColor" Color="#4a6baf"/>
-        <SolidColorBrush x:Key="LightBackground" Color="#f8f1df"/>
+        <SolidColorBrush x:Key="SoftBeige" Color="#f8f1df"/>
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
@@ -51,17 +58,19 @@ WindowStartupLocation="CenterScreen"
         </Style>
     </Window.Resources>
 
-    <Grid Background="{StaticResource LightBackground}">
-        <Border CornerRadius="16" 
-                Background="White" 
-                Padding="30" 
-                Margin="20"
-                BorderBrush="#E0E0E0" 
+    <Grid Background="{StaticResource SoftBeige}">
+
+
+        <!-- Contenido principal -->
+        <Border CornerRadius="16"
+                Background="White"
+                Padding="20"
+                Margin="20,20,20,20"
+                BorderBrush="#E0E0E0"
                 BorderThickness="1"
                 VerticalAlignment="Center">
 
             <StackPanel>
-                <!-- Logo y título -->
                 <TextBlock Text="CHASSER"
                            FontSize="24"
                            FontWeight="Bold"
@@ -73,30 +82,25 @@ WindowStartupLocation="CenterScreen"
                            TextAlignment="Center"
                            Margin="0,0,0,25"/>
 
-                <!-- Formulario -->
-                <TextBlock Text="Correo electrónico" 
-                           FontWeight="SemiBold"/>
+                <TextBlock Text="Correo electrónico" FontWeight="SemiBold"/>
                 <TextBox Text="{Binding Email}"/>
 
-                <TextBlock Text="Nueva contraseña" 
-                           FontWeight="SemiBold"/>
+                <TextBlock Text="Nueva contraseña" FontWeight="SemiBold"/>
                 <PasswordBox x:Name="NewPasswordBox"/>
 
-                <TextBlock Text="Confirmar contraseña" 
-                           FontWeight="SemiBold"/>
+                <TextBlock Text="Confirmar contraseña" FontWeight="SemiBold"/>
                 <PasswordBox x:Name="ConfirmPasswordBox"/>
 
-                <!-- Botones visibles y bien posicionados -->
-                <StackPanel Orientation="Horizontal" 
+                <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             Margin="0,20">
                     <Button Content="CANCELAR"
-                            Background="Transparent" 
+                            Background="Transparent"
                             Foreground="#777"
                             Command="{Binding CancelCommand}"/>
 
                     <Button Content="CAMBIAR"
-                            Background="{StaticResource SecondaryColor}" 
+                            Background="{StaticResource SecondaryColor}"
                             Foreground="White"
                             FontWeight="Bold"
                             Command="{Binding ChangePasswordCommand}"

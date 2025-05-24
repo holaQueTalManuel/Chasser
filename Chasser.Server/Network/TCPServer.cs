@@ -971,10 +971,11 @@ namespace Chasser.Logic.Network
                 .MinimumLevel.Debug()
                 .WriteTo.Console()
                 .WriteTo.File(
-                    path: Path.Combine(logDirectory, "server_.log"),
-                    rollingInterval: RollingInterval.Day, // Nuevo archivo cada día
-                    retainedFileCountLimit: 7, // Mantener solo 7 archivos (1 semana)
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                    "logs/serverlog-.log",
+                    rollingInterval: RollingInterval.Day,         // Un archivo por día
+                    retainedFileCountLimit: 7,                     // Máximo 7 archivos
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                )
                 .CreateLogger();
 
             try
