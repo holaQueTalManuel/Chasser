@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Chasser.Common.Logic.Board;
 using Chasser.Common.Logic.Enums;
 using Chasser.Common.Logic.Moves;
@@ -13,36 +12,145 @@ namespace Chasser.Server.Network
     {
         public Player Color { get; }
         private readonly Position _center = new Position(3, 3);
+        private Position _lastEnemyLeechPos;
 
         public AIPlayer(Player color)
         {
             Color = color;
         }
 
-        // Método principal que genera el movimiento de la IA
         public Move GenerateMove(GameState gameState)
         {
             var validMoves = GetAllValidMoves(gameState, Color).ToList();
 
-            // 1. Priorizar movimientos que capturan piezas
+            var enemyPieces = FindAllEnemyPieces(gameState, Color.Opponent());
+            if (enemyPieces.Count == 1 && gameState.Board[enemyPieces[0]] is Sanguijuela)
+            {
+                _lastEnemyLeechPos = enemyPieces[0];
+                var focusedMove = GetFocusedLeechCaptureMove(gameState, validMoves, _lastEnemyLeechPos);
+                if (focusedMove != null) return focusedMove;
+            }
+            else if (_lastEnemyLeechPos != null && gameState.Board[_lastEnemyLeechPos] is Sanguijuela)
+            {
+                var persistentMove = GetFocusedLeechCaptureMove(gameState, validMoves, _lastEnemyLeechPos);
+                if (persistentMove != null) return persistentMove;
+            }
+
+            var adjacentCapture = GetAdjacentCaptureMove(gameState, validMoves);
+            if (adjacentCapture != null) return adjacentCapture;
+
             var captureMoves = GetCaptureMoves(gameState, validMoves);
             if (captureMoves.Count > 0)
             {
-                return SelectBestCaptureMove(gameState, captureMoves);
+                var bestCapture = SelectBestCaptureMove(gameState, captureMoves);
+                return bestCapture;
             }
 
-            // 2. Movimientos estratégicos según tipo de pieza
-            var strategicMoves = GetStrategicMoves(gameState, validMoves);
-            if (strategicMoves.Count > 0)
-            {
-                return SelectBestStrategicMove(gameState, strategicMoves);
-            }
-
-            // 3. Si no hay estrategia específica, mover hacia el centro
-            return GetCenterMove(gameState, validMoves);
+            return GetStrategicMove(gameState, validMoves);
         }
 
-        #region Métodos principales de generación de movimientos
+        private Move GetFocusedLeechCaptureMove(GameState gameState, List<Move> moves, Position enemyLeechPos)
+        {
+            var directCapture = moves.FirstOrDefault(m =>
+                m.ToPos.Equals(enemyLeechPos) &&
+                gameState.Board[m.FromPos] is Sanguijuela);
+
+            if (directCapture != null) return directCapture;
+
+            var myLeeches = FindMyPieces(gameState, PieceType.Sanguijuela);
+            if (!myLeeches.Any()) return null;
+
+            var closestLeech = myLeeches
+                .OrderBy(l => DistanceBetween(l, enemyLeechPos))
+                .First();
+
+            var leechMoves = moves.Where(m =>
+                m.FromPos.Equals(closestLeech) &&
+                gameState.Board[m.FromPos] is Sanguijuela).ToList();
+
+            return leechMoves
+                .OrderBy(m => DistanceBetween(m.ToPos, enemyLeechPos))
+                .FirstOrDefault();
+        }
+
+        private Move GetAdjacentCaptureMove(GameState gameState, List<Move> moves)
+        {
+            return moves
+                .Where(move =>
+                {
+                    var from = move.FromPos;
+                    var to = move.ToPos;
+                    var piece = gameState.Board[from];
+                    var target = gameState.Board[to];
+
+                    return target != null &&
+                           target.Color != piece.Color &&
+                           IsAdjacent(from, to) &&
+                           IsCaptureAllowed(piece, target);
+                })
+                .Select(move => new { Move = move, Value = GetPieceValue(gameState.Board[move.ToPos]) })
+                .OrderByDescending(x => x.Value)
+                .FirstOrDefault()?.Move;
+        }
+
+        private int GetPieceValue(Piece piece)
+        {
+            return piece.Type switch
+            {
+                PieceType.Obliterador => 3,
+                PieceType.Sanguijuela => 2,
+                PieceType.Tonel => 1,
+                _ => 0
+            };
+        }
+
+        private bool IsAdjacent(Position a, Position b)
+        {
+            int dr = Math.Abs(a.Row - b.Row);
+            int dc = Math.Abs(a.Column - b.Column);
+            return (dr + dc == 1);
+        }
+
+        private bool IsCaptureAllowed(Piece attacker, Piece target)
+        {
+            return attacker.Type switch
+            {
+                PieceType.Sanguijuela => target.Type == PieceType.Tonel || target.Type == PieceType.Sanguijuela,
+                PieceType.Obliterador => true,
+                _ => false
+            };
+        }
+
+        private Move GetStrategicMove(GameState gameState, List<Move> moves)
+        {
+            return moves
+                .Select(move =>
+                {
+                    var piece = gameState.Board[move.FromPos];
+                    int score = 0;
+
+                    if (piece.Type == PieceType.Obliterador)
+                    {
+                        var enemies = FindAllEnemyPieces(gameState, Color.Opponent());
+                        score = 100 - DistanceToNearestTarget(move.ToPos, enemies);
+                    }
+                    else if (piece.Type == PieceType.Sanguijuela)
+                    {
+                        var toneles = FindEnemyPieces(gameState, PieceType.Tonel, Color.Opponent());
+                        score = 80 - DistanceToNearestTarget(move.ToPos, toneles);
+                    }
+                    else if (piece.Type == PieceType.Tonel)
+                    {
+                        var enemies = FindAllEnemyPieces(gameState, Color.Opponent());
+                        int distToEnemy = DistanceToNearestTarget(move.ToPos, enemies);
+                        score = 50 - DistanceToCenter(move.ToPos) + distToEnemy;
+                    }
+
+                    return new { move, score };
+                })
+                .OrderByDescending(x => x.score)
+                .First().move;
+        }
 
         private List<Move> GetAllValidMoves(GameState gameState, Player player)
         {
@@ -59,128 +167,46 @@ namespace Chasser.Server.Network
                 var piece = gameState.Board[move.FromPos];
                 if (target.Color == piece.Color) return false;
 
-                // Reglas específicas por tipo de pieza
-                return piece.Type switch
-                {
-                    PieceType.Sanguijuela => target.Type == PieceType.Tonel,
-                    PieceType.Obliterador => true, // Puede capturar cualquier pieza
-                    PieceType.Tonel => false,      // Los toneles no pueden capturar
-                    _ => false
-                };
+                return IsCaptureAllowed(piece, target);
             }).ToList();
         }
 
         private Move SelectBestCaptureMove(GameState gameState, List<Move> captureMoves)
         {
-            // Priorizar capturas de piezas más valiosas
             return captureMoves.OrderByDescending(move =>
             {
                 var target = gameState.Board[move.ToPos];
-                return target.Type switch
-                {
-                    PieceType.Obliterador => 3,
-                    PieceType.Sanguijuela => 2,
-                    PieceType.Tonel => 1,
-                    _ => 0
-                };
+                return GetPieceValue(target);
             }).First();
         }
 
-        private List<Move> GetStrategicMoves(GameState gameState, List<Move> moves)
+        private List<Position> FindAllEnemyPieces(GameState gameState, Player enemyColor)
         {
-            var strategicMoves = new List<Move>();
-
-            foreach (var move in moves)
-            {
-                var piece = gameState.Board[move.FromPos];
-
-                switch (piece.Type)
-                {
-                    case PieceType.Tonel:
-                        // Toneles se mueven hacia el centro
-                        if (IsMovingTowardCenter(move.FromPos, move.ToPos))
-                            strategicMoves.Add(move);
-                        break;
-
-                    case PieceType.Sanguijuela:
-                        // Sanguijuelas se mueven hacia toneles enemigos
-                        if (IsMovingTowardTarget(move, gameState, PieceType.Tonel))
-                            strategicMoves.Add(move);
-                        break;
-
-                    case PieceType.Obliterador:
-                        // Obliteradores se mueven hacia cualquier pieza enemiga
-                        if (IsMovingTowardAnyEnemy(move, gameState))
-                            strategicMoves.Add(move);
-                        break;
-                }
-            }
-
-            return strategicMoves;
+            return gameState.Board.AllPieces()
+                .Where(p => p.piece.Color == enemyColor)
+                .Select(p => p.pos)
+                .ToList();
         }
 
-        private Move SelectBestStrategicMove(GameState gameState, List<Move> strategicMoves)
+        private List<Position> FindEnemyPieces(GameState gameState, PieceType type, Player color)
         {
-            return strategicMoves.OrderBy(move =>
-            {
-                var piece = gameState.Board[move.FromPos];
-
-                return piece.Type switch
-                {
-                    PieceType.Tonel => DistanceToCenter(move.ToPos),
-                    PieceType.Sanguijuela => DistanceToNearestTarget(move.ToPos,
-                                      FindEnemyPieces(gameState, PieceType.Tonel, Color.Opponent())),
-                    PieceType.Obliterador => DistanceToNearestTarget(move.ToPos,
-                                      FindAllEnemyPieces(gameState, Color.Opponent())),
-                    _ => 0
-                };
-            }).First();
+            return gameState.Board.AllPieces()
+                .Where(p => p.piece.Color == color && p.piece.Type == type)
+                .Select(p => p.pos)
+                .ToList();
         }
 
-        private Move GetCenterMove(GameState gameState, List<Move> moves)
+        private List<Position> FindMyPieces(GameState gameState, PieceType type)
         {
-            return moves.OrderBy(move => DistanceToCenter(move.ToPos)).First();
+            return gameState.Board.AllPieces()
+                .Where(p => p.piece.Color == Color && p.piece.Type == type)
+                .Select(p => p.pos)
+                .ToList();
         }
-
-        #endregion
-
-        #region Métodos auxiliares de lógica
-
-        private bool IsMovingTowardCenter(Position from, Position to)
-        {
-            return DistanceToCenter(to) < DistanceToCenter(from);
-        }
-
-        private bool IsMovingTowardTarget(Move move, GameState gameState, PieceType targetType)
-        {
-            var targets = FindEnemyPieces(gameState, targetType, Color.Opponent());
-            if (!targets.Any()) return false;
-
-            var nearestTarget = targets.OrderBy(t => DistanceBetween(move.FromPos, t)).First();
-            return DistanceBetween(move.ToPos, nearestTarget) < DistanceBetween(move.FromPos, nearestTarget);
-        }
-
-        private bool IsMovingTowardAnyEnemy(Move move, GameState gameState)
-        {
-            var enemies = FindAllEnemyPieces(gameState, Color.Opponent());
-            if (!enemies.Any()) return false;
-
-            var nearestEnemy = enemies.OrderBy(e => DistanceBetween(move.FromPos, e)).First();
-            return DistanceBetween(move.ToPos, nearestEnemy) < DistanceBetween(move.FromPos, nearestEnemy);
-        }
-
-        #endregion
-
-        #region Métodos auxiliares de cálculo de distancias y búsqueda
 
         private int DistanceToCenter(Position pos)
         {
             return Math.Abs(pos.Row - _center.Row) + Math.Abs(pos.Column - _center.Column);
-        }
-
-        private int DistanceToNearestTarget(Position pos, List<Position> targets)
-        {
-            return targets.Any() ? targets.Min(t => DistanceBetween(pos, t)) : int.MaxValue;
         }
 
         private int DistanceBetween(Position a, Position b)
@@ -188,46 +214,9 @@ namespace Chasser.Server.Network
             return Math.Abs(a.Row - b.Row) + Math.Abs(a.Column - b.Column);
         }
 
-        private List<Position> FindEnemyPieces(GameState gameState, PieceType pieceType, Player enemyColor)
+        private int DistanceToNearestTarget(Position pos, List<Position> targets)
         {
-            var pieces = new List<Position>();
-
-            for (int row = 0; row < 7; row++)
-            {
-                for (int col = 0; col < 7; col++)
-                {
-                    var pos = new Position(row, col);
-                    var piece = gameState.Board[pos];
-                    if (piece?.Color == enemyColor && piece.Type == pieceType)
-                    {
-                        pieces.Add(pos);
-                    }
-                }
-            }
-
-            return pieces;
+            return targets.Any() ? targets.Min(t => DistanceBetween(pos, t)) : int.MaxValue;
         }
-
-        private List<Position> FindAllEnemyPieces(GameState gameState, Player enemyColor)
-        {
-            var pieces = new List<Position>();
-
-            for (int row = 0; row < 7; row++)
-            {
-                for (int col = 0; col < 7; col++)
-                {
-                    var pos = new Position(row, col);
-                    var piece = gameState.Board[pos];
-                    if (piece?.Color == enemyColor)
-                    {
-                        pieces.Add(pos);
-                    }
-                }
-            }
-
-            return pieces;
-        }
-
-        #endregion
     }
 }

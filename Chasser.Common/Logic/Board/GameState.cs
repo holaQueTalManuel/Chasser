@@ -14,7 +14,7 @@ namespace Chasser.Common.Logic.Board
         public DateTime StartTime { get; }
         public DateTime? EndTime { get; private set; }
 
-        private Dictionary<Player, int> eliminations = new Dictionary<Player, int>
+        public Dictionary<Player, int> eliminations = new Dictionary<Player, int>
         {
             { Player.White, 0 },
             { Player.Black, 0 }
