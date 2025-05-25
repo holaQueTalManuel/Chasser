@@ -60,7 +60,7 @@
             BorderThickness="15"
             CornerRadius="0"
             Background="White"
-            Padding="15"
+            Padding="0"
             Margin="0">
 
         <Grid Background="{StaticResource SoftBeige}">
@@ -83,7 +83,7 @@
             Background="White"
             CornerRadius="16"
             Padding="20"
-            Margin="20"
+            Margin="5"
             Effect="{StaticResource DropShadowEffect}"
             HorizontalAlignment="Center"
             VerticalAlignment="Top">
@@ -118,6 +118,11 @@
                     <Button Content="Cerrar Sesión"
                     Style="{StaticResource MainButtonStyle}"
                     Click="Exit_Click"/>
+
+                    <Button Content="Eliminar Cuenta"
+                        Style="{StaticResource MainButtonStyle}"
+                        Click="Delete_Click"/>
+
                 </StackPanel>
             </Border>
         </Grid>

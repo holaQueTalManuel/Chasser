@@ -274,5 +274,9 @@ namespace Chasser
             Storyboard sb = (Storyboard)this.FindResource("FadeInStoryboard");
             sb.Begin(this);
         }
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService?.Navigate(new Login());
+        }
     }
 }

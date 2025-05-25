@@ -78,6 +78,19 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <Button x:Name="BackButton"
+                Content="←"
+                FontSize="24"
+                Width="40" Height="40"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="20,20,0,0"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                Foreground="#2D2D30"
+                Cursor="Hand"
+                Click="BackButton_Click"/>
+
         <!-- Logo -->
         <Image Source="/Imgs/logo.jpg"
                Width="100" Height="100"

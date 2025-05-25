@@ -27,6 +27,45 @@ namespace Chasser
             (Window.GetWindow(this) as MainWindow)?.ResizeAndCenterWindow(900, 600);
         }
 
+        private async void Delete_Click(object sender, RoutedEventArgs e)
+        {
+            var token = AuthHelper.GetToken();
+            if (string.IsNullOrEmpty(token))
+            {
+                PopUpInfo.ShowMessage("No se encontró el token de autenticación", Window.GetWindow(this), MessageType.Warning);
+                return;
+            }
+
+            var request = new RequestMessage
+            {
+                Command = "DELETE_ACCOUNT",
+                Data = new Dictionary<string, string> { { "token", token } }
+            };
+
+            await TCPClient.SendOnlyMessageAsync(request);
+            var response = await TCPClient.ReceiveMessageAsync();
+
+            try
+            {
+                if (response.Status == "DELETE_ACCOUNT_SUCCESS")
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        NavigationService.Navigate(new Login());
+                    });
+                }
+                else
+                {
+                    PopUpInfo.ShowMessage("No se pudo eliminar tu cuenta", Window.GetWindow(this), MessageType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                PopUpInfo.ShowMessage($"Error de conexión: {ex.Message}", Window.GetWindow(this), MessageType.Error);
+                Debug.WriteLine($"Error en Start_Game_IA_Click: {ex}");
+            }
+        }
+
         private async void Start_Game_IA_Click(object sender, RoutedEventArgs e)
         {
             var token = AuthHelper.GetToken();

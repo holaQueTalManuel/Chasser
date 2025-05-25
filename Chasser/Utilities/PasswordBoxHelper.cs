@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace Chasser
+namespace Chasser.Utilities
 {
     public static class PasswordBoxHelper
     {

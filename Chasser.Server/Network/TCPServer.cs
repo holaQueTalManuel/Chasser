@@ -147,6 +147,9 @@ namespace Chasser.Logic.Network
                         case "GET_RANKING":
                             await HandleRanking(msg.Data, writer);
                             break;
+                        case "DELETE_ACCOUNT":
+                            await HandleDeleteAccount(msg.Data, writer);
+                            break;
                         default:
                             _logger.Warning("Comando no reconocido de {ClientIp}: {Command}", clientIp, msg.Command);
                             break;
@@ -181,6 +184,80 @@ namespace Chasser.Logic.Network
                 {
                     _logger.Error(ex, "Error liberando recursos del cliente {ClientIp}", clientIp);
                 }
+            }
+        }
+
+        private async Task HandleDeleteAccount(Dictionary<string, string> data, StreamWriter writer)
+        {
+            _logger.Information("Procesando DELETE_ACCOUNT...");
+
+            // Validación del token
+            if (!data.ContainsKey("token"))
+            {
+                _logger.Warning("Falta token en DELETE_ACCOUNT");
+                await SendJsonAsync(writer, "DELETE_ACCOUNT_FAIL", "Token necesario");
+                return;
+            }
+
+            string token = data["token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.Warning("Token vacío en DELETE_ACCOUNT");
+                await SendJsonAsync(writer, "DELETE_ACCOUNT_FAIL", "Token vacío");
+                return;
+            }
+
+            try
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                // 1. Buscar sesión y usuario
+                var session = await _context.Sesiones_Usuarios
+                    .Include(s => s.Usuario)
+                    .FirstOrDefaultAsync(u => u.Token == token);
+
+                if (session?.Usuario == null)
+                {
+                    _logger.Warning("Token no válido o usuario no encontrado");
+                    await SendJsonAsync(writer, "DELETE_ACCOUNT_FAIL", "Credenciales inválidas");
+                    return;
+                }
+
+                var user = session.Usuario;
+
+                // 2. Eliminar registros relacionados (en orden inverso a las dependencias)
+                // - Sesiones del usuario
+                var userSessions = await _context.Sesiones_Usuarios
+                    .Where(s => s.UsuarioId == user.Id)
+                    .ToListAsync();
+                _context.Sesiones_Usuarios.RemoveRange(userSessions);
+
+                // - Relación Partidas_Jugadores
+                var playerGames = await _context.Partidas_Jugadores
+                    .Where(pj => pj.UsuarioId == user.Id)
+                    .ToListAsync();
+                _context.Partidas_Jugadores.RemoveRange(playerGames);
+
+                // - Partidas donde es jugador1 (si aplica)
+                var gamesAsPlayer1 = await _context.Partidas
+                    .Where(p => p.Jugador1Id == user.Id)
+                    .ToListAsync();
+                _context.Partidas.RemoveRange(gamesAsPlayer1);
+
+                // 3. Finalmente eliminar el usuario
+                _context.Usuarios.Remove(user);
+
+                // 4. Guardar todos los cambios
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                _logger.Information($"Usuario eliminado: ID {user.Id}");
+                await SendJsonAsync(writer, "DELETE_ACCOUNT_SUCCESS", "Cuenta eliminada correctamente");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error al eliminar usuario");
+                await SendJsonAsync(writer, "DELETE_ACCOUNT_FAIL", "Error interno del servidor");
             }
         }
 

@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Media.Animation;
-using Chasser.ViewModel;
+using Chasser.ViewModels;
 
 namespace Chasser.View
 {
