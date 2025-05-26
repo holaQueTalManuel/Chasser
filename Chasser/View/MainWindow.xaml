@@ -5,33 +5,85 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Chasser"
         mc:Ignorable="d"
-        Icon="/Imgs/logo.ico"
+        Title="Chasser"
+        Height="600" Width="900"
+        MinHeight="500" MinWidth="800"
+        ResizeMode="CanMinimize"
+        WindowStyle="None"
         WindowStartupLocation="CenterScreen"
-        Title="Chasser" 
-        Height="600" 
-        Width="900"
-        MinHeight="500"
-ResizeMode="CanMinimize"
-        MinWidth="800"
-        Background="#F8F1DF"  
-    WindowStyle="SingleBorderWindow"
-        FontFamily="Segoe UI">
+        AllowsTransparency="True"
+        FontFamily="Segoe UI"
+    Background="Transparent"
+        Icon="/Imgs/logo.ico">
 
     <Window.Resources>
-        <!-- Estilo para eliminar el borde del Frame -->
+        <!-- Estilo para el Frame (sin borde) -->
         <Style TargetType="Frame">
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
         </Style>
+
+        <!-- Estilo para los botones de la barra -->
+        <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#cd5c5c"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Storyboard x:Key="MinimizeWindowAnim">
+            <DoubleAnimation
+        Storyboard.TargetName="RootBorder"
+        Storyboard.TargetProperty="Opacity"
+        From="1.0"
+        To="0.0"
+        Duration="0:0:0.2" />
+        </Storyboard>
+
+        <!-- Efecto de sombra para la ventana -->
+        <DropShadowEffect x:Key="WindowShadow" BlurRadius="20" ShadowDepth="0" Color="Black" Opacity="0.3"/>
+
+        
     </Window.Resources>
 
-    <Grid>
-        
-        
-        
-        
-        <Frame x:Name="MainFrame" 
-               NavigationUIVisibility="Hidden"
-               Background="Transparent"/>
-    </Grid>
+    <!-- Contenedor con esquinas redondeadas y sombra -->
+    <Border x:Name="RootBorder" Background="#F8F1DF" CornerRadius="16" Margin="10" Effect="{StaticResource WindowShadow}"  RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <ScaleTransform ScaleX="1" ScaleY="1"/>
+        </Border.RenderTransform>
+        <Grid>
+
+            <!-- Barra de título personalizada -->
+            <Grid Background="#2D2D30" Height="30" VerticalAlignment="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <TextBlock Text="CHASSER" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="―" Style="{StaticResource WindowControlButtonStyle}" Click="Minimize_Click"/>
+                    <Button Content="X" Style="{StaticResource WindowControlButtonStyle}" Click="Close_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Contenido principal de la ventana -->
+            <Frame x:Name="MainFrame"
+                   Margin="0,30,0,0"
+                   NavigationUIVisibility="Hidden"
+                   Background="Transparent"/>
+        </Grid>
+    </Border>
 </Window>

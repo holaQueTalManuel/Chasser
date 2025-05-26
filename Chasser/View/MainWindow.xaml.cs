@@ -14,6 +14,7 @@ using System.IO;
 using Chasser.Common.Data;
 using System.ComponentModel;
 using Chasser.Logic.Network;
+using System.Windows.Media.Animation;
 
 namespace Chasser
 {
@@ -89,6 +90,22 @@ namespace Chasser
 
             base.OnClosing(e);
         }
+        private void Minimize_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                DragMove();
+        }
+        
 
     }
     
