@@ -21,6 +21,9 @@ namespace Chasser.Common.Data
         protected override void OnConfiguring(DbContextOptionsBuilder options)
             => options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;");
 
+        //usuario para cuando lo ponga en marcha
+        //options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;User Id=chasser_user;Password=chasser_user;TrustServerCertificate=True;");
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configuración para Partida

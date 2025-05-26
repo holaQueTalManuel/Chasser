@@ -11,7 +11,7 @@
         Height="600" 
         Width="900"
         MinHeight="500"
-        ResizeMode="NoResize"
+ResizeMode="CanMinimize"
         MinWidth="800"
         Background="#F8F1DF"  
     WindowStyle="SingleBorderWindow"
@@ -26,6 +26,10 @@
     </Window.Resources>
 
     <Grid>
+        
+        
+        
+        
         <Frame x:Name="MainFrame" 
                NavigationUIVisibility="Hidden"
                Background="Transparent"/>
