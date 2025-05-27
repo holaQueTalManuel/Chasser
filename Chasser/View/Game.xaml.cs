@@ -93,7 +93,7 @@ namespace Chasser
         
 
 
-        private void ProcessServerResponse(ResponseMessage response)
+        private async void ProcessServerResponse(ResponseMessage response)
         {
             if (response == null) return;
 
@@ -181,6 +181,13 @@ namespace Chasser
         {
             TCPClient.Disconnect();
         }
+        private void ShowLoadingIndicator(bool show)
+{
+    LoadingGrid.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    
+    // Opcional: Deshabilitar interacción con el tablero mientras carga
+    boardGrid.IsEnabled = !show; 
+}
 
         private bool TryExtractAndApplyMove(ResponseMessage response, out Position from, out Position to)
         {
@@ -534,7 +541,10 @@ namespace Chasser
             gameState = null;
             _cts.Cancel();
 
-            NavigationService.Navigate(new MainPage());
+            if (NavigationService.CanGoBack)
+            {
+                NavigationService.GoBack();
+            }
         }
     }
 }

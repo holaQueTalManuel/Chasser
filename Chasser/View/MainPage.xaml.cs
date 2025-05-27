@@ -16,9 +16,12 @@ namespace Chasser
 {
     public partial class MainPage : Page
     {
-        public MainPage()
+        private string _username;
+        public MainPage(string user)
         {
             InitializeComponent();
+            _username = user;
+            textBienvenida.Text = $"Bienvenido/a, {_username}";
             this.Loaded += Login_Loaded;
         }
 

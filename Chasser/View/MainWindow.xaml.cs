@@ -33,26 +33,26 @@ namespace Chasser
         public MainWindow(ChasserContext context)
         {
             InitializeComponent();
-           // MainFrame.Navigate(new Login());
+           MainFrame.Navigate(new Login());
 
             _context = context;
 
-            if (File.Exists(userPath))
-            {
-                string savedUser = File.ReadAllText(userPath);
-                var user = _context.Usuarios.FirstOrDefault(u => u.Nombre == savedUser);
+            //if (File.Exists(userPath))
+            //{
+            //    string savedUser = File.ReadAllText(userPath);
+            //    var user = _context.Usuarios.FirstOrDefault(u => u.Nombre == savedUser);
 
-                if (user != null)
-                {
-                    MainFrame.Navigate(new MainPage());
-                    return;
-                }
+            //    if (user != null)
+            //    {
+            //        MainFrame.Navigate(new MainPage());
+            //        return;
+            //    }
                 
-            }
-            else
-            {
-                MainFrame.Navigate(new Login());
-            }
+            //}
+            //else
+            //{
+            //    MainFrame.Navigate(new Login());
+            //}
 
         }
         public void AjustarTamaño(double ancho, double alto)

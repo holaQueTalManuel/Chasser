@@ -105,7 +105,7 @@ namespace Chasser.Common.Logic.Board
                 Console.WriteLine($"Pieza en destino: {Board[move.ToPos]?.ToString() ?? "vacía"}");
                 return MoveResult.FromValidation(validation);
             }
-
+            Piece movingPiece = Board[move.FromPos];
             Piece capturedPiece = Board[move.ToPos];
             move.Execute(Board);
 
@@ -115,9 +115,16 @@ namespace Chasser.Common.Logic.Board
                 eliminations[CurrentPlayer]++;
                 Console.WriteLine($"[{CurrentPlayer}] ha capturado una pieza. Total eliminadas: {eliminations[CurrentPlayer]}");
 
-                if (Board[move.FromPos] is Obliterador obliterador)
+                Console.WriteLine($"Tipo de pieza que se ha movido: {movingPiece.GetType().Name}");
+
+                if (movingPiece is Obliterador obliterador)
                 {
                     obliterador.HasCaptured = true;
+                    Console.WriteLine($"SE HA CAMBIADO EL ESTADO DE LA VARIABLE HASCAPTURED, VALOR DE LA VARIABLE: {obliterador.HasCaptured}");
+                }
+                else
+                {
+                    Console.WriteLine("La pieza que se ha movido no es un Obliterador.");
                 }
             }
 

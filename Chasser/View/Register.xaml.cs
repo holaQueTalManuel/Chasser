@@ -66,7 +66,20 @@ namespace Chasser
                             {
                                 var token = response.Data["token"];
                                 AuthHelper.SetToken(token);
-                                NavigationService.Navigate(new MainPage());
+
+                                if (response.Data["username"] != null)
+                                {
+                                    NavigationService.Navigate(new MainPage(response.Data["username"]));
+                                }
+                                else
+                                {
+                                    PopUpInfo.ShowMessage(
+                                $"El registro ha fallado. Causa: {response.Message}",
+                                owner,
+                                MessageType.Error
+                            );
+                                }
+
                             }
                         }
                         else

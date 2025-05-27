@@ -104,7 +104,7 @@
                         </EventTrigger>
                     </StackPanel.Triggers>
 
-                    <TextBlock Text="Bienvenido a Chasser"
+                    <TextBlock x:Name="textBienvenida" Text=""
                        Style="{StaticResource TitleTextStyle}"/>
 
                     <Button Content="Jugar"

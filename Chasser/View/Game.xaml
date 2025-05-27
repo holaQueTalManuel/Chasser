@@ -148,6 +148,7 @@
                FontWeight="Bold"
                Foreground="{StaticResource DarkBrown}"/>
         </StackPanel>
+        
 
         <Popup x:Name="GameOverPopup"
        AllowsTransparency="True"

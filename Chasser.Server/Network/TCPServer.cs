@@ -524,7 +524,7 @@ namespace Chasser.Logic.Network
                     _logger.Warning("ACK no recibido correctamente de {ClientIp}", clientIp);
                     return;
                 }
-
+                await Task.Delay(1000);
                 await MakeAIMove(gameState, writer);
             }
             catch (Exception ex)
@@ -966,7 +966,8 @@ namespace Chasser.Logic.Network
                 Contrasenia = BCryptPasswordHasher.HashPassword(password),
                 Fecha_Creacion = DateTime.Now,
                 Racha_Victorias = 0,
-                Partidas_Ganadas = 0
+                Partidas_Ganadas = 0,
+                Partidas_Jugadas = 0
             };
 
             _context.Usuarios.Add(usuario);

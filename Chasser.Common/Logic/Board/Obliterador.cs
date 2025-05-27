@@ -38,6 +38,7 @@ namespace Chasser.Common.Logic.Board
         {
             Obliterador copy = new Obliterador(Color);
             copy.HasMoved = HasMoved;
+            copy.HasCaptured = HasCaptured;
             return copy;
         }
 

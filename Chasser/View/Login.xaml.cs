@@ -75,7 +75,7 @@ namespace Chasser
                     {
                         var token = response.Data["token"];
                         AuthHelper.SetToken(token);
-                        NavigationService.Navigate(new MainPage());
+                        NavigationService.Navigate(new MainPage(response.Data["username"]));
                     }
                     else
                     {
