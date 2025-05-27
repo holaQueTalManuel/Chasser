@@ -6,6 +6,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="NoResize"
+        Icon="/Imgs/logo.jpg"
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
@@ -76,9 +77,9 @@
                         <LineBreak/>
                         - El turno cambia automáticamente tras mover.
                         <LineBreak/>
-                        - Obliteradores pueden capturar a Sanguijuelas y Toneles pero no las pueden capturar en diagonal si estas están juntas. Pueden entrar a la meta si han capturado previamente.
+                        - Obliteradores pueden capturar a Sanguijuelas y Toneles. Pueden entrar a la meta si han capturado previamente.
                         <LineBreak/>
-                        - Sanguijelas pueden capturar a Toneles y Obliteradores, pero a estos últimos solo si se ha capturado a un Tonel.
+                        - Sanguijelas pueden capturar a Toneles y Obliteradores.
                         <LineBreak/>
                         - Toneles solo tienen la misión de entrar a la meta, no pueden capturar a nadie.
                     </TextBlock>
