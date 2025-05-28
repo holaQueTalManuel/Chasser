@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,5 +13,8 @@ namespace Chasser.Common.Model
         public string Username { get; set; }
         public string Wins { get; set; }
         public double WinRate { get; set; }
+
+        public string WinRateDisplay => $"{WinRate:F2}%";
+
     }
 }

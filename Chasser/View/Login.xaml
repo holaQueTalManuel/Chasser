@@ -161,7 +161,8 @@
                                    Visibility="Visible"/>
 
                         <Button x:Name="TogglePasswordButton"
-                                Content="🙈"
+                                Content="👁️"
+                                IsTabStop="False"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
                                 Width="30" Height="30"

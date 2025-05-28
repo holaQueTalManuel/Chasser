@@ -36,6 +36,8 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
         </Style>
+        
+        
     </Page.Resources>
 
     <Grid Background="{StaticResource SoftBeige}">
@@ -99,14 +101,13 @@
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="Pos" Width="50" 
+                            <GridViewColumn Header="Posición" Width="80" 
                                             DisplayMemberBinding="{Binding Position}" />
                             <GridViewColumn Header="Jugador" Width="250" 
                                             DisplayMemberBinding="{Binding Username}" />
-                            <GridViewColumn Header="Victorias" Width="80" 
+                            <GridViewColumn Header="Victorias" Width="130" 
                                             DisplayMemberBinding="{Binding Wins}" />
-                            <GridViewColumn Header="Win %" Width="80" 
-                                            DisplayMemberBinding="{Binding WinRate, StringFormat={}{0:F2}%}" />
+
                         </GridView>
                     </ListView.View>
                 </ListView>

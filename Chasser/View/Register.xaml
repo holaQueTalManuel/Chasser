@@ -162,6 +162,7 @@
                                    IsHitTestVisible="False"/>
                         <Button x:Name="TogglePasswordButton"
                                 Content="👁️"
+                                IsTabStop="False"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
                                 Width="30" Height="30"
@@ -191,6 +192,7 @@
                                    IsHitTestVisible="False"/>
                         <Button x:Name="TogglePasswordButtonConfirm"
                                 Content="👁️"
+                                IsTabStop="False"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
                                 Width="30" Height="30"

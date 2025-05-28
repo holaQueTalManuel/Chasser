@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,20 +28,16 @@ namespace Chasser.View
         {
             InitializeComponent();
 
-            // Convertir los datos a tu modelo
-            var rankingList = ParseRankingData(rankingData);
-            var userPosition = currentUserPosition != null ? int.Parse(currentUserPosition.ToString()) : 0;
+            var rankingList = rankingData is List<PlayerRank> list
+                    ? new ObservableCollection<PlayerRank>(list)
+                    : new ObservableCollection<PlayerRank>(); var userPosition = currentUserPosition != null ? int.Parse(currentUserPosition.ToString()) : 0;
 
+            
             // Asignar el ViewModel con los datos
             this.DataContext = new RankingViewModel(rankingList, userPosition);
         }
 
-        private ObservableCollection<PlayerRank> ParseRankingData(object rawData)
-        {
-            return rawData is List<PlayerRank> playerList
-                ? new ObservableCollection<PlayerRank>(playerList)
-                : new ObservableCollection<PlayerRank>();
-        }
+        
         private void OnBackButtonClicked(object sender, RoutedEventArgs e)
         {
             if (NavigationService.CanGoBack)

@@ -181,13 +181,7 @@ namespace Chasser
         {
             TCPClient.Disconnect();
         }
-        private void ShowLoadingIndicator(bool show)
-{
-    LoadingGrid.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-    
-    // Opcional: Deshabilitar interacción con el tablero mientras carga
-    boardGrid.IsEnabled = !show; 
-}
+       
 
         private bool TryExtractAndApplyMove(ResponseMessage response, out Position from, out Position to)
         {

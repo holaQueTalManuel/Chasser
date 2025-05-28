@@ -317,13 +317,13 @@ namespace Chasser.Logic.Network
                         : "0.0";
 
                     rankingData.Add(new Dictionary<string, string>
-                    {
-                        { "position", position.ToString() },
-                        { "username", player.Nombre },
-                        { "wins", player.Partidas_Ganadas.ToString() },
-                        { "games_played", player.Partidas_Jugadas.ToString() },
-                        { "win_rate", winRate }
-                    });
+                {
+                    { "position", position.ToString() },
+                    { "username", player.Nombre },
+                    { "wins", player.Partidas_Ganadas.ToString() },
+                    { "games_played", player.Partidas_Jugadas.ToString() },
+                    { "win_rate", winRate }
+                });
 
                     position++;
                 }

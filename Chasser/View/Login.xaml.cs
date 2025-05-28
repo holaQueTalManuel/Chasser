@@ -172,7 +172,7 @@ namespace Chasser
                 PasswordTextBox.Text = PasswordBox.Password;
                 PasswordBox.Visibility = Visibility.Collapsed;
                 PasswordTextBox.Visibility = Visibility.Visible;
-                TogglePasswordButton.Content = "🙈"; // o "Ocultar"
+                TogglePasswordButton.Content = "👁️"; // o "Ocultar"
             }
             else
             {
@@ -180,7 +180,7 @@ namespace Chasser
                 PasswordBox.Password = PasswordTextBox.Text;
                 PasswordBox.Visibility = Visibility.Visible;
                 PasswordTextBox.Visibility = Visibility.Collapsed;
-                TogglePasswordButton.Content = "👁️"; // o "Mostrar"
+                TogglePasswordButton.Content = "🙈"; // o "Mostrar"
             }
 
             // Mantener visible o no el placeholder
