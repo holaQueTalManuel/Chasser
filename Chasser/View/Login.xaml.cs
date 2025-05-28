@@ -68,8 +68,15 @@ namespace Chasser
 
                 try
                 {
+                    LoadingOverlay.Visibility = Visibility.Visible;
+                    Storyboard spinner = (Storyboard)this.FindResource("WindowsStyleSpinnerAnimation");
+                    spinner.Begin();
+
                     await TCPClient.SendOnlyMessageAsync(request);
                     var response = await TCPClient.ReceiveMessageAsync();
+
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                    spinner.Stop();
 
                     if (response.Status == "LOGIN_SUCCESS")
                     {

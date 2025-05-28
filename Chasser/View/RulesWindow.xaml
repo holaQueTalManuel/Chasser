@@ -69,21 +69,35 @@
                            Margin="0,0,0,10"/>
 
                 <!-- Contenido -->
-                <ScrollViewer Grid.Row="1">
-                    <TextBlock TextWrapping="Wrap" FontSize="16" Foreground="#333">
-                        - El objetivo es capturar todas las piezas del oponente o entrar en la casilla verde del centro (meta).
-                        <LineBreak/>
-                        - Sanguijuelas se mueven arriba, abajo y lados una casilla. Obliteradores se mueven en diagonal una/dos casillas. Toneles se mueven arriba, abajo y lados una/dos casillas.
-                        <LineBreak/>
-                        - El turno cambia automáticamente tras mover.
-                        <LineBreak/>
-                        - Obliteradores pueden capturar a Sanguijuelas y Toneles. Pueden entrar a la meta si han capturado previamente.
-                        <LineBreak/>
-                        - Sanguijelas pueden capturar a Toneles y Obliteradores.
-                        <LineBreak/>
-                        - Toneles solo tienen la misión de entrar a la meta, no pueden capturar a nadie.
-                    </TextBlock>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+                    <StackPanel Margin="0,10,0,10">
+                        <TextBlock TextWrapping="Wrap"
+                   FontSize="16"
+                   Foreground="#333"
+                   Margin="0,10,0,0">
+            <Run FontWeight="Bold">• Objetivo:</Run> Capturar todas las piezas del oponente o entrar en la casilla verde del centro (meta).
+            <LineBreak/><LineBreak/>
+
+            <Run FontWeight="Bold">• Movimientos:</Run>
+            <LineBreak/>  - <Run FontWeight="Bold">Sanguijuelas:</Run> se mueven 1 casilla en dirección vertical u horizontal.
+            <LineBreak/>  - <Run FontWeight="Bold">Obliteradores:</Run> se mueven en diagonal 1 o 2 casillas.
+            <LineBreak/>  - <Run FontWeight="Bold">Toneles:</Run> se mueven en vertical u horizontal 1 o 2 casillas.
+            <LineBreak/><LineBreak/>
+
+            <Run FontWeight="Bold">• Turnos:</Run> El turno cambia automáticamente tras mover una pieza.
+            <LineBreak/><LineBreak/>
+
+            <Run FontWeight="Bold">• Capturas:</Run>
+            <LineBreak/>  - <Run FontWeight="Bold">Obliteradores</Run> pueden capturar a <Run FontWeight="Bold">Sanguijuelas</Run> y <Run FontWeight="Bold">Toneles</Run>.
+            <LineBreak/>  - <Run FontWeight="Bold">Sanguijuelas</Run> pueden capturar a <Run FontWeight="Bold">Toneles</Run> y <Run FontWeight="Bold">Obliteradores</Run>.
+            <LineBreak/>  - <Run FontWeight="Bold">Toneles</Run> no pueden capturar.
+            <LineBreak/><LineBreak/>
+
+            <Italic>En el futuro serán añadidas más reglas que te dejarán boquiabierto/a.</Italic>
+                        </TextBlock>
+                    </StackPanel>
                 </ScrollViewer>
+
 
                 <!-- Botón cerrar -->
                 <Button Grid.Row="2"

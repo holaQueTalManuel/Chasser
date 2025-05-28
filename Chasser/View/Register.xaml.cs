@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -57,8 +58,16 @@ namespace Chasser
 
                     try
                     {
+                        LoadingOverlay.Visibility = Visibility.Visible;
+                        Storyboard spinner = (Storyboard)FindResource("WindowsStyleSpinnerAnimation");
+                        spinner.Begin();
+
                         await TCPClient.SendOnlyMessageAsync(request);
                         var response = await TCPClient.ReceiveMessageAsync();
+
+                        spinner.Stop();
+                        LoadingOverlay.Visibility = Visibility.Collapsed;
+
 
                         if (response.Status == "REGISTER_SUCCESS" && response.Data != null)
                         {

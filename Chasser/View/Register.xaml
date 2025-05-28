@@ -70,6 +70,14 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
+
+        <Storyboard x:Key="WindowsStyleSpinnerAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
+                     Storyboard.TargetProperty="Angle"
+                     From="360" To="0"
+                     Duration="0:0:1"/>
+        </Storyboard>
+
     </Page.Resources>
 
     <Grid Background="{StaticResource SoftBeige}">
@@ -225,5 +233,51 @@
                 </StackPanel>
             </Border>
         </Grid>
+        <!-- Spinner overlay centrado -->
+        <Grid x:Name="LoadingOverlay"
+      Grid.RowSpan="2"
+      Background="#80000000"
+      Visibility="Collapsed"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      Panel.ZIndex="10">
+            <Grid>
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Canvas Width="100" Height="100">
+                        <!-- 8 elipses giratorias -->
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="0" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <!-- Repite el patrón con ángulos 45, 90, ..., 315 -->
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="45" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <!-- ... hasta 315 -->
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="315" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+
+                        <!-- Rotación global -->
+                        <Canvas.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotate" CenterX="50" CenterY="50"/>
+                        </Canvas.RenderTransform>
+                    </Canvas>
+
+                    <TextBlock Text="Iniciando sesión..."
+                       Foreground="White"
+                       FontSize="16"
+                       Margin="0,120,0,0"
+                       HorizontalAlignment="Center"/>
+                </Grid>
+            </Grid>
+        </Grid>
+
+
     </Grid>
 </Page>

@@ -83,6 +83,20 @@
                              From="0.8" To="1"
                              Duration="0:0:0.5"/>
         </Storyboard>
+
+        <Storyboard x:Key="SpinnerAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="SpinnerRotation"
+                             Storyboard.TargetProperty="Angle"
+                             From="0" To="360"
+                             Duration="0:0:1"/>
+        </Storyboard>
+
+        <Storyboard x:Key="WindowsStyleSpinnerAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
+                     Storyboard.TargetProperty="Angle"
+                     From="360" To="0"
+                     Duration="0:0:1"/>
+        </Storyboard>
     </Page.Resources>
 
     <Grid Background="{StaticResource SoftBeige}">
@@ -202,5 +216,74 @@
                 </StackPanel>
             </Border>
         </Grid>
+
+        <!-- Spinner overlay centrado -->
+        <Grid x:Name="LoadingOverlay"
+      Grid.RowSpan="2"
+      Background="#80000000"
+      Visibility="Collapsed"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      Panel.ZIndex="10">
+            <Grid>
+                <Grid HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+                    <Canvas Width="100" Height="100">
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="0" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="45" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="90" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="135" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="180" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="225" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="270" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Ellipse Width="10" Height="10" Fill="White" Canvas.Left="45" Canvas.Top="0">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform Angle="315" CenterX="5" CenterY="50"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+
+                        <!-- Group rotation -->
+                        <Canvas.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotate" CenterX="50" CenterY="50"/>
+                        </Canvas.RenderTransform>
+                    </Canvas>
+
+                    <TextBlock Text="Iniciando sesión..."
+                       Foreground="White"
+                       FontSize="16"
+                       Margin="0,120,0,0"
+                       HorizontalAlignment="Center"/>
+                </Grid>
+            </Grid>
+        </Grid>
+
     </Grid>
 </Page>
