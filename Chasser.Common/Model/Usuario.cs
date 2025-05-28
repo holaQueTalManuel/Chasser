@@ -14,8 +14,8 @@ namespace Chasser.Common.Model
         public string Correo { get; set; }
         public string Contrasenia { get; set; }
         public int? Partidas_Ganadas { get; set; }
-        public int? Racha_Victorias { get; set; }
-        public int? Partidas_Jugadas { get; set; }
+        public int Partidas_Jugadas { get; set; } = 0;
+        public int Racha_Victorias { get; set; } = 0;
         public ICollection<Sesion_Usuario> Sesiones { get; set; }
         public DateTime Fecha_Creacion { get; set; }
     }

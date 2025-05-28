@@ -4,6 +4,7 @@ using Chasser.Common.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Chasser.Common.Migrations
 {
     [DbContext(typeof(ChasserContext))]
-    partial class ChasserContextModelSnapshot : ModelSnapshot
+    [Migration("20250528182826_SincronizarModeloConBD")]
+    partial class SincronizarModeloConBD
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -136,10 +139,10 @@ namespace Chasser.Common.Migrations
                     b.Property<int?>("Partidas_Ganadas")
                         .HasColumnType("int");
 
-                    b.Property<int>("Partidas_Jugadas")
+                    b.Property<int?>("Partidas_Jugadas")
                         .HasColumnType("int");
 
-                    b.Property<int>("Racha_Victorias")
+                    b.Property<int?>("Racha_Victorias")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
