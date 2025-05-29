@@ -19,6 +19,7 @@ using Chasser.Server.Network;
 using System.Reflection.PortableExecutable;
 using Serilog;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
 
 namespace Chasser.Logic.Network
 {
@@ -1059,7 +1060,21 @@ namespace Chasser.Logic.Network
             try
             {
                 Log.Information("Iniciando servidor...");
-                using var context = new ChasserContext();
+
+
+                var config = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+                var connectionString = config.GetConnectionString("ChasserDB");
+
+                var optionsBuilder = new DbContextOptionsBuilder<ChasserContext>();
+                optionsBuilder.UseSqlServer(connectionString);
+
+                // Crear el contexto con las opciones
+                using var context = new ChasserContext(optionsBuilder.Options);
+
                 var server = new TCPServer(context, Log.Logger);
                 await server.StartAsync(PORT);
             }

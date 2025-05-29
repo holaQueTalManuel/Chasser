@@ -23,19 +23,13 @@ namespace Chasser
     /// </summary>
     public partial class MainWindow : Window
     {
-        private string userPath = "user.txt";
-        private readonly ChasserContext _context;
-        string connectionString = "Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;";
-        // Query SQL
-        string query = "SELECT id, nombre, fecha_creacion, correo FROM usuarios";
+        
 
-
-        public MainWindow(ChasserContext context)
+        public MainWindow()
         {
             InitializeComponent();
            MainFrame.Navigate(new Login());
 
-            _context = context;
 
             //if (File.Exists(userPath))
             //{

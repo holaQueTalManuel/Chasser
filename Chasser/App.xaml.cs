@@ -59,9 +59,8 @@ namespace Chasser
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // ✅ Registrar el DbContext
-            services.AddDbContext<ChasserContext>(options =>
-                options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;"));
+
+           
 
             // ✅ Registrar la ventana principal
             services.AddTransient<MainWindow>();

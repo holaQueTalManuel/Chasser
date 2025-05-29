@@ -21,6 +21,7 @@ using Chasser.Logic;
 using Chasser.View;
 using Chasser.Common.Logic.Enums;
 using System.Windows.Media.Animation;
+using System.Runtime.CompilerServices;
 
 namespace Chasser
 {
@@ -65,18 +66,17 @@ namespace Chasser
                         { "password", password }
                     }
                 };
-
+                Storyboard spinner = (Storyboard)this.FindResource("WindowsStyleSpinnerAnimation");
                 try
                 {
                     LoadingOverlay.Visibility = Visibility.Visible;
-                    Storyboard spinner = (Storyboard)this.FindResource("WindowsStyleSpinnerAnimation");
+                    
                     spinner.Begin();
 
                     await TCPClient.SendOnlyMessageAsync(request);
                     var response = await TCPClient.ReceiveMessageAsync();
 
-                    LoadingOverlay.Visibility = Visibility.Collapsed;
-                    spinner.Stop();
+                    
 
                     if (response.Status == "LOGIN_SUCCESS")
                     {
@@ -92,6 +92,11 @@ namespace Chasser
                 catch (Exception ex)
                 {
                     PopUpInfo.ShowMessage("Error de conexión: " + ex.Message, Window.GetWindow(this), MessageType.Warning);
+                }
+                finally
+                {
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                    spinner.Stop();
                 }
             }
             else

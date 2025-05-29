@@ -55,18 +55,17 @@ namespace Chasser
                     { "email", EmailBox.Text.Trim() }
                 }
                     };
-
+                    Storyboard spinner = (Storyboard)FindResource("WindowsStyleSpinnerAnimation");
                     try
                     {
                         LoadingOverlay.Visibility = Visibility.Visible;
-                        Storyboard spinner = (Storyboard)FindResource("WindowsStyleSpinnerAnimation");
+                        
                         spinner.Begin();
 
                         await TCPClient.SendOnlyMessageAsync(request);
                         var response = await TCPClient.ReceiveMessageAsync();
 
-                        spinner.Stop();
-                        LoadingOverlay.Visibility = Visibility.Collapsed;
+                        
 
 
                         if (response.Status == "REGISTER_SUCCESS" && response.Data != null)
@@ -107,6 +106,11 @@ namespace Chasser
                             owner,
                             MessageType.Error
                         );
+                    }
+                    finally
+                    {
+                        spinner.Stop();
+                        LoadingOverlay.Visibility = Visibility.Collapsed;
                     }
                 }
                 else

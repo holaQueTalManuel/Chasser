@@ -18,11 +18,9 @@ namespace Chasser.Common.Data
         public DbSet<Partida_Jugador> Partidas_Jugadores { get; set; }
         public DbSet<Sesion_Usuario> Sesiones_Usuarios { get; set; }  
 
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-            => options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;Integrated Security=True;TrustServerCertificate=True;");
+        
 
-        //usuario para cuando lo ponga en marcha
-        //options.UseSqlServer("Server=DESKTOP-MCGMEA7\\SQLEXPRESS;Database=Chasser_DB;User Id=chasser_user;Password=chasser_user;TrustServerCertificate=True;");
+      
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
